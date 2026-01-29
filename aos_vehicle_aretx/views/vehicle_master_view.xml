@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!--    #actions and menus-->
+       <menuitem
+            id="menu_vehicle_root_main"
+            name="Vehicle Master"
+            web_icon="aretx_job_card,static/description/icon1.png"/>
+    <menuitem id="menu_vehicle_root"
+              name="Vehicle Master"
+              parent="menu_vehicle_root_main"
+              sequence="50"/>
+
+    <record id="action_brand" model="ir.actions.act_window">
+        <field name="name">Vehicle Brand</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">vehicle.brand.model</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Vehicle Brand !
+            </p>
+        </field>
+    </record>
+    <menuitem id="menu_brand"
+              name="Vehicle Brand"
+              action="action_brand"
+              parent="menu_vehicle_root" groups="base.group_user"/>
+
+    <record id="action_color" model="ir.actions.act_window">
+        <field name="name">Vehicle Color</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">vehicle.color.model</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Vehicle color !
+            </p>
+        </field>
+    </record>
+    <menuitem id="menu_color"
+              name="Vehicle Color"
+              action="action_color"
+              parent="menu_vehicle_root"
+              groups="base.group_user"
+    />
+
+    <record id="action_model" model="ir.actions.act_window">
+        <field name="name">Vehicle Model</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">vehicle.model.model</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Vehicle Model !
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_model"
+              name="Vehicle Model"
+              action="action_model"
+              parent="menu_vehicle_root"
+              groups="base.group_user"
+    />
+
+    <record id="action_type" model="ir.actions.act_window">
+        <field name="name">Vehicle Type</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">vehicle.type.model</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Vehicle Type !
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_type"
+              name="Vehicle Type"
+              action="action_type"
+              parent="menu_vehicle_root"
+              groups="base.group_user"
+    />
+
+    <record id="action_vehicle_master_list" model="ir.actions.act_window">
+        <field name="name">Vehicle Details</field>
+        <field name="res_model">vehicle.master.model</field>
+        <field name="view_mode">list,form</field>
+        <field name="target">current</field>
+    </record>
+
+
+    <menuitem
+            id="menu_master"
+            name="Vehicle Details"
+            action="action_vehicle_master_list"
+            parent="menu_vehicle_root"
+            groups="base.group_user"
+    />
+
+
+    <!--    #list view-->
+    <record id="master_list_view" model="ir.ui.view">
+        <field name="name">vehicle.master.list</field>
+        <field name="model">vehicle.master.model</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="x_customer_id"/>
+                <field name="x_brand_id" />
+                <field name="x_model_id"/>
+                <field name="x_vehicle_number_id"/>
+                <field name="x_color_id"/>
+                <field name="x_avg_km"/>
+            </list>
+        </field>
+    </record>
+
+<!--    #form view-->
+    <record id="master_form_view" model="ir.ui.view">
+        <field name="name">vehicle.master.form</field>
+        <field name="model">vehicle.master.model</field>
+        <field name="arch" type="xml">
+            <form string="Vehicle Details">
+                <sheet>
+                    <group>
+                        <field name="priority" widget="priority"/>
+                        <field name="x_customer_id" widget="many2many_tags"/>
+                        <field name="x_brand_id"/>
+                        <field name="x_model_id"/>
+                        <field name="x_vehicle_number_id"/>
+                        <field name="x_color_id"/>
+                        <field name="x_avg_km"/>
+                        <field name="last_message_date"/>
+                        <field name="last_wa_message_date"/>
+                    </group>
+                </sheet>
+                <chatter/>
+                <!-- THIS IS NON-NEGOTIABLE -->
+            </form>
+        </field>
+    </record>
+
+    <record id="project_view_kanban_inherit_vehicle_details" model="ir.ui.view">
+        <field name="name">project.project.kanban.inherit.vehicle.details</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.view_project_kanban"/>
+        <field name="arch" type="xml">
+
+            <!-- Stable anchor in Odoo 19 -->
+            <xpath expr="//field[@name='partner_id']" position="after">
+
+                <!-- Make fields available to kanban -->
+                <field name="x_vehicle_brand_name"/>
+                <field name="x_vehicle_model_name"/>
+                <field name="x_vehicle_reg_number"/>
+
+                <!-- Custom rendering -->
+                <div t-if="record.x_vehicle_brand_name.raw_value"
+                     class="d-block fw-bold mt-1"
+                     style="font-size: 12px;">
+                    <i class="fa fa-tachometer me-2" title="Brand"/>
+                    <t t-esc="record.x_vehicle_brand_name.value"/>
+                    <t t-esc="record.x_vehicle_model_name.value"/>
+                </div>
+
+                <div t-if="record.x_vehicle_reg_number.raw_value"
+                     class="d-block fw-bold"
+                     style="font-size: 12px;">
+                    <i class="fa fa-car me-2" title="Vehicle Number"/>
+                    <t t-esc="record.x_vehicle_reg_number.value"/>
+                </div>
+
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <record id="view_task_form2_inherited_vehicle" model="ir.ui.view">
+        <field name="name">project.task.form.inherit.vehicle</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="x_vehicle_brand_name" readonly="1" force_save="1" options="{'no_open': True, 'no_create': True}" />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_kanban_inherit_vehicle_brand" model="ir.ui.view">
+    <field name="name">project.task.kanban.inherit.vehicle</field>
+    <field name="model">project.task</field>
+    <field name="inherit_id" ref="project.view_task_kanban"/>
+    <field name="arch" type="xml">
+
+        <!-- Anchor to partner_id FIELD (stable across versions) -->
+        <xpath expr="//field[@name='partner_id']" position="after">
+
+            <field name="x_vehicle_brand_name"/>
+            <field name="x_vehicle_model_name"/>
+            <field name="x_vehicle_reg_number"/>
+
+            <div t-if="record.x_vehicle_brand_name.raw_value"
+                 class="o_text_overflow fw-bold mt-1"
+                 style="font-size: 12px;">
+                <i class="fa fa-tachometer me-2"/>
+                <t t-esc="record.x_vehicle_brand_name.value"/>
+                <t t-esc="record.x_vehicle_model_name.value"/>
+            </div>
+
+            <div t-if="record.x_vehicle_reg_number.raw_value"
+                 class="d-block fw-bold"
+                 style="font-size: 12px;">
+                <i class="fa fa-car me-2"/>
+                <t t-esc="record.x_vehicle_reg_number.value"/>
+            </div>
+
+        </xpath>
+
+    </field>
+</record>
+</odoo>
+

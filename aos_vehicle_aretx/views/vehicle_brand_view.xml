@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    #list view
+    <record id="brand_list_view" model="ir.ui.view">
+        <field name="name">vehicle.brand.list</field>
+        <field name="model">vehicle.brand.model</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+            </list>
+        </field>
+    </record>
+    #form_view
+    <record id="brand_form_view" model="ir.ui.view">
+        <field name="name">vehicle.brand.form</field>
+        <field name="model">vehicle.brand.model</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                    </group>
+                </sheet>
+
+            </form>
+        </field>
+    </record>
+</odoo>
