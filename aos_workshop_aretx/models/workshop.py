@@ -23,8 +23,6 @@ class WorkshopAccountMove(models.Model):
     _inherit = "account.move"
 
     service_type = fields.Char(string='Service Type')
-    # advisor_name = fields.Char(string='Advisor Name')
-    # vehicle_kms = fields.Char(string='Vehicle KMS')
     advisor_name = fields.Many2one(
         'res.partner', string='Advisor Name' ,
         domain="[('category_id.name', '=', 'Advisor')]")
@@ -41,7 +39,6 @@ class WorkshopAccountMove(models.Model):
             if sale:
                 move.service_type = sale.service_type
                 move.advisor_name = sale.advisor_name
-                # move.vehicle_kms = sale.vehicle_kms
 
         return move
 
@@ -49,8 +46,6 @@ class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
     service_type = fields.Char(string='Service Type')
-    # advisor_name = fields.Char(string='Advisor Name')
-    # vehicle_kms = fields.Char(string='Vehicle KMS')
 
     advisor_name = fields.Many2one(
         'res.partner', string='Advisor Name' ,
