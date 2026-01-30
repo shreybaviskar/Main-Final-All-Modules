@@ -69,9 +69,7 @@
 <!--                <field name="vehicle_kms"/>-->
             </xpath>
 
-            <xpath expr="//field[@name='validity_date']"
-                   position="before">
-
+            <xpath expr="//field[@name='validity_date']" position="before">
                 <field name="entry_date"/>
                 <field name="exit_date"/>
 
