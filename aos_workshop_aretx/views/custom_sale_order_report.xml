@@ -14,7 +14,6 @@
     <!-- Report Template -->
     <template id="report_saleorder_withheader_report">
         <t t-call="web.html_container">
-            <!-- <t t-foreach="docs" t-as="doc"> -->
             <t t-call="web.external_layout">
 
                 <t t-foreach="docs" t-as="o">
@@ -139,7 +138,6 @@
                         <!-- Job Card / Quotation Info -->
                         <div class="row mt-4 mb-4" style="display:flex; align-items:flex-start;">
 
-                            <!-- LEFT -->
                             <div class="col-4" style="padding-right:20px;">
                                 <span t-if="env.context.get('proforma')">
                                     <strong>Pro-Forma Invoice #</strong>
@@ -156,7 +154,6 @@
                                 <br/>
                             </div>
 
-                            <!-- CENTER -->
                             <div class="col-4" style="padding-right:20px;">
                                 <t t-if="o.client_order_ref">
                                     <strong>Your Reference:</strong>
@@ -165,7 +162,6 @@
                                 </t>
                             </div>
 
-                            <!-- RIGHT -->
                             <div class="col-4">
                                 <t t-if="o.date_order">
                                     <strong t-if="o.state in ['draft','sent']">Quotation Date:</strong>
@@ -174,7 +170,6 @@
                                     <br/>
                                 </t>
 
-                                <!-- Expiration (stacked correctly, not a new row) -->
                                 <t t-if="o.validity_date and o.state in ['draft','sent']">
                                     <strong>Expiration:</strong>
                                     <span t-field="o.validity_date"/>
@@ -343,7 +338,6 @@
                 <t t-foreach="docs" t-as="o">
                     <div class="page">
                         <h2 style="text-align:left;">Job Card  <span t-field="o.name"/></h2>
-<!--                        <h2 style="text-align:left;">Job Card</h2>-->
                         <br/>
 
                         <div class="row">
@@ -391,7 +385,6 @@
                                     <th>Technician</th>
                                     <th>Description</th>
                                     <th>Quantity</th>
-                                    <!--                                <th>Unit</th>-->
                                 </tr>
                             </thead>
                             <tbody>
@@ -410,18 +403,11 @@
                                     </td>
 
                                     <br/>
-                                    <!--                                <td>-->
-                                    <!--                                    <span t-field="line.product_uom.name"/>-->
-                                    <!--                                </td>-->
+
                                 </tr>
                             </tbody>
                         </table>
 
-                        <!--                        <br/>-->
-                        <!--                        <p>-->
-                        <!--                            <strong>Notes:</strong>-->
-                        <!--                        </p>-->
-                        <!--                        <p t-field="o.note"/>-->
                     </div>
                 </t>
             </t>
@@ -442,10 +428,6 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
-            <!-- Example: Add field below the Salesperson -->
-<!--            <xpath expr="//field[@name='user_id']" position="after">-->
-<!--                <field name="technician_id" options="{'no_open': True}"/>-->
-<!--            </xpath>-->
             <xpath expr="//field[@name='order_line']//field[@name='product_template_id']" position="after">
                 <field name="technician_id_l" optional="hide" options="{'no_create': True, 'no_create_edit': True}"/>
             </xpath>
