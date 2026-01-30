@@ -132,18 +132,6 @@ class VehicleMaster(models.Model):
             'target': 'list'
         }
 
-    # def view_in_sale(self):
-    #     return {
-    #         'name': self.x_vehicle_number_id,
-    #         'res_model': 'sale.order',
-    #         'type': 'ir.actions.act_window',
-    #         'view_mode': 'list,form',
-    #         'domain': [('x_vehicle_number_id', '=', self.x_vehicle_number_id)],
-    #         'target': 'list'
-    #     }
-    #
-
-
 class Project(models.Model):
     _inherit = 'project.project'
 
