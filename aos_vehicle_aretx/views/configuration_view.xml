@@ -11,7 +11,7 @@
 
                         <h2 class="text-primary mt16 mb8">
                             <i class="fa fa-cog me-2 text-primary"/>
-                            Tyre Shop Service Reminder Policy
+                            AutomateOS Service Reminder Policy
                         </h2>
 
                         <div class="row mt16 o_settings_container">
@@ -57,7 +57,7 @@
 
                         <h2 class="text-primary mt16 mb8">
                             <i class="fa fa-credit-card-alt me-2 text-primary"/>
-                            Tyre Shop Payment Reminder Policy
+                            AutomateOS Payment Reminder Policy
                         </h2>
                         <div class="row mt16 o_settings_container">
                             <div class="col-lg-6 col-md-8">
@@ -91,10 +91,6 @@
         <field name="priority" eval="1000"/>
         <field name="arch" type="xml">
             <form string="Reminder Policy" class="oe_form_configuration">
-                <header>
-                    <button string="Save" type="object" name="execute" class="oe_highlight"/>
-                    <button string="Discard" type="object" name="cancel" special="cancel"/>
-                </header>
                 <sheet>
                     <app data-string="Reminder Policy" string="Reminder Policy" name="theme_settings"
                          logo="aretx_vehicle/static/description/icon.png">
@@ -102,7 +98,7 @@
 
                             <h2 class="text-primary mt16 mb8">
                                 <i class="fa fa-cog me-2 text-primary"/>
-                                Tyre Shop Service Reminder Policy
+                                AutomateOS Service Reminder Policy
                             </h2>
 
                             <div class="row mt16 o_settings_container">
@@ -148,7 +144,7 @@
 
                             <h2 class="text-primary mt16 mb8">
                                 <i class="fa fa-credit-card-alt me-2 text-primary"/>
-                                Tyre Shop Payment Reminder Policy
+                                AutomateOS Payment Reminder Policy
                             </h2>
                             <div class="row mt16 o_settings_container">
                                 <div class="col-lg-6 col-md-8">
