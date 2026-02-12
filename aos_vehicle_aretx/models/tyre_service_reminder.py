@@ -11,6 +11,8 @@ from odoo.exceptions import ValidationError
 import logging
 from datetime import date
 import base64
+import certifi
+
 
 _logger = logging.getLogger(__name__)
 
@@ -228,155 +230,205 @@ class TyreServiceReminder(models.Model):
         else:
             _logger.warning("Skipped sending WhatsApp message — missing channel or msg record.")
 
+    #latest
     @api.model
     def _cron_tyre_service_wa_reminder(self):
-        """Send reminder messages per vehicle based on configuration."""
+        """Send WhatsApp tyre service reminders using direct Graph API (old style)."""
+
         ir_config = self.env['ir.config_parameter'].sudo()
+
         km_limit = int(ir_config.get_param('tyreshop.tyre_message_km', default=5000))
         month_limit = int(ir_config.get_param('tyreshop.tyre_message_months', default=3))
-        reminder_message_payment_days = int(ir_config.get_param('tyreshop.reminder_message_payment_days', default=3))
-
-        print('system settings')
-        print(km_limit, month_limit, reminder_message_payment_days)
 
         today = fields.Date.today()
+        current_dt = fields.Datetime.now()
+
         Vehicle = self.env['vehicle.master.model'].sudo()
+        Log = self.env['wa.cron.log'].sudo()
+
         vehicles = Vehicle.search([('x_avg_km', '>', 0)])
-        template = self.env['wa.template'].search([
-            ('name', '=', 'reminder_service')
+
+        # -----------------------------------------
+        # Fetch Provider (OLD STYLE)
+        # -----------------------------------------
+        company_id = self.env.company.id
+
+        provider = self.env['provider'].sudo().search([
+            ('company_id', '=', company_id),
         ], limit=1)
 
+        if not provider:
+            _logger.error("No provider found for company %s", company_id)
+            return
+
+        user_partner = provider.user_id.partner_id
+        PHONE_NUMBER_ID = provider.graph_api_instance_id
+        ACCESS_TOKEN = provider.graph_api_token
+
+        if not PHONE_NUMBER_ID or not ACCESS_TOKEN:
+            _logger.error("Provider missing Graph API credentials")
+            return
+
+        url = f"https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages"
+
+        # -----------------------------------------
+        # Loop Vehicles
+        # -----------------------------------------
         for vehicle in vehicles:
-            # Get last date properly
-            # c_data = template_id.description
+
+            partner = vehicle.x_customer_id
+
+            if not partner or not (partner.mobile or partner.phone):
+                Log.create({
+                    'message': 'Partner or phone missing',
+                    'vehicle_id': vehicle.id,
+                    'partner_id': partner.id if partner else False,
+                    'phone': '',
+                    'status': 'skipped',
+                    'api_response': 'Missing partner or phone',
+                    'date': current_dt,
+                })
+                continue
+
+            phone = partner.mobile or partner.phone
+
+            # -----------------------
+            # Date Logic
+            # -----------------------
             last_date = vehicle.last_wa_message_date
-            # print('last_date', last_date)
+
             if not last_date and vehicle.create_date:
-                # Convert datetime to date
                 last_date = vehicle.create_date.date()
             elif not last_date:
                 last_date = today
+
             days_since_last = (today - last_date).days
             months_since_last = days_since_last / 30.0
-            monthly_avg = vehicle.x_avg_km  # Assuming this is "average km per month"
-            expected_km = monthly_avg * months_since_last
-            # Safe subtraction (both are datetime.date)
-            days_diff = (today - last_date).days
-            month_days = month_limit * 30
-            km_due = vehicle.x_avg_km >= km_limit
+            expected_km = vehicle.x_avg_km * months_since_last
+
             km_due = expected_km >= km_limit
-            month_due = days_diff >= month_days
             month_due = months_since_last >= month_limit
-            print('month_due')
-            print(month_due)
-            print('km_due')
-            print(km_due)
-            partner = vehicle.x_customer_id
-            print('partner.mobile')
-            print(partner.mobile)
-            if not partner.mobile:
-                raise ValidationError("Please update the mobile number before proceeding!")
 
-            if km_due or month_due and partner.mobile:
-                partner = vehicle.x_customer_id
-                print('started a sending a msg to partner !!!!')
-                print(vehicle.x_customer_id)
-                print(partner)
-                print(vehicle)
-                x_avg_km = vehicle.x_avg_km
-                message = (
-                    f"Dear {partner.name}, Mobile Number {partner.mobile}, your vehicle ({vehicle.x_vehicle_number_id or partner_id.name}) "
-                    f"has run {vehicle.x_avg_km} KM. It's time for a tyre service check!"
+            if not (km_due or month_due):
+                Log.create({
+                    'message': 'Service not due yet',
+                    'vehicle_id': vehicle.id,
+                    'partner_id': partner.id,
+                    'phone': phone,
+                    'status': 'skipped',
+                    'api_response': 'Not due',
+                    'date': current_dt,
+                })
+                continue
+
+            # -----------------------
+            # Build Message
+            # -----------------------
+            message = (
+                f"Dear {partner.name}, "
+                f"your vehicle ({vehicle.x_vehicle_number_id or ''}) "
+                f"has run approximately {int(expected_km)} KM. "
+                f"It's time for a tyre service check."
+            )
+
+            # Clean phone (IMPORTANT)
+            clean_phone = phone.replace("+", "").replace(" ", "").strip()
+
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": clean_phone,
+                "type": "template",
+                "template": {
+                    "name": "reminder_service",
+                    "language": {"code": "en"},
+                    "components": [{
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": partner.name or ""},
+                            {"type": "text", "text": vehicle.x_vehicle_number_id or ""},
+                            {"type": "text", "text": str(int(expected_km))},
+                        ]
+                    }]
+                }
+            }
+
+            headers = {
+                "Authorization": f"Bearer {ACCESS_TOKEN}",
+                "Content-Type": "application/json",
+            }
+
+            try:
+                response = requests.post(
+                    url,
+                    json=payload,
+                    headers=headers,
+                    verify=certifi.where()
                 )
-                print('x_avg_km', x_avg_km)
-                # vehicle_cron = self.env['tyre.service.reminder'].browse()
-                partner.message_post(body=message)
-                try:
 
-                    # self.send_whatsapp_service_reminder(template, vehicle)
-                    company_id = self.env.company.id
+                _logger.info("WhatsApp Status: %s", response.status_code)
+                _logger.info("WhatsApp Response: %s", response.text)
 
-                    print('company....', company_id)
-                    provider = self.env['provider'].search([('company_id', '=', company_id)], limit=1)
-                    user_partner = provider.user_id.partner_id
-                    graph_api_instance_id = provider.graph_api_instance_id
-                    graph_api_token = provider.graph_api_token
-                    print(graph_api_instance_id)
-                    print(graph_api_token)
-                    PHONE_NUMBER_ID = graph_api_instance_id
-                    ACCESS_TOKEN = graph_api_token
-
-                    url = f"https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages"
-
-                    #
-                    clean_phone = partner.mobile.replace("+91", "").replace(" ", "").strip()
-                    print('clean_phone', clean_phone)
-                    payload = {
-                        "messaging_product": "whatsapp",
-                        "to": clean_phone,
-                        "type": "template",
-                        "template": {
-                            "name": "reminder_service",
-                            "language": {"code": "en"},
-                            "components": [
-                                {
-                                    "type": "body",
-                                    "parameters": [
-                                        {"type": "text", "text": partner.name},  # {{1}}
-                                        {"type": "text", "text": vehicle.x_vehicle_number_id},  # {{2}}
-                                        {"type": "text", "text": vehicle.x_avg_km},  # {{3}}
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-
-                    headers = {
-                        "Authorization": f"Bearer {ACCESS_TOKEN}",
-                        "Content-Type": "application/json",
-                    }
-                    _logger.info("WhatsApp Message sent: %s", payload)
-
-                    try:
-                        response = requests.post(url, json=payload, headers=headers)
-                        _logger.info("WhatsApp Cloud Status: %s", response.status_code)
-                        _logger.info("WhatsApp Cloud Response: %s", response.text)
-
-                        if response.status_code not in (200, 201):
-                            raise Exception(f"WhatsApp API ERROR → {response.text}")
-
-                    except Exception as e:
-                        _logger.error("WhatsApp Failed: %s", str(e))
-
-                    vehicle.write({
-                        'last_wa_message_date': today,
+                if response.status_code not in (200, 201):
+                    Log.create({
+                        'message': message,
+                        'vehicle_id': vehicle.id,
+                        'partner_id': partner.id,
+                        'phone': phone,
+                        'author_id': user_partner.id,
+                        'provider_id': provider.id,
+                        'company_id': provider.company_id.id,
+                        'status': 'failed',
+                        'api_response': response.text,
+                        'date': current_dt,
                     })
-                    current_dt = datetime.datetime.now()
-                    message = (
-                        f"Dear {partner.name}, Mobile Number {partner.mobile}, your vehicle ({vehicle.x_vehicle_number_id or partner_id.name}) "
-                        f"has run {vehicle.x_avg_km} KM. It's time for a tyre service check!"
-                    )
+                    continue
 
-                    res = request.env['whatsapp.history'].sudo().create(
-                        {
-                            'message': message,
-                            'message_id': "",
-                            'author_id': user_partner.id,
-                            'type': 'delivered',
-                            'partner_id': partner.id,
-                            'phone': partner.mobile,
-                            'attachment_ids': "",
-                            'provider_id': provider.id,
-                            'company_id': provider.company_id.id,
-                            'date': current_dt
-                        })
+                # -----------------------
+                # Success
+                # -----------------------
+                vehicle.write({
+                    'last_wa_message_date': today,
+                })
 
-                    print("✅ WhatsApp History Create", res)
-                    print("✅ WhatsApp reminder sent for vehicle service", vehicle.id)
+                Log.create({
+                    'message': message,
+                    'vehicle_id': vehicle.id,
+                    'partner_id': partner.id,
+                    'phone': phone,
+                    'author_id': user_partner.id,
+                    'provider_id': provider.id,
+                    'company_id': provider.company_id.id,
+                    'status': 'success',
+                    'api_response': response.text,
+                    'date': current_dt,
+                })
 
-                except Exception as e:
-                    print("❌ ERROR:", e)
-                    _logger.error("WhatsApp reminder failed for vehicle service %s: %s", vehicle.id, e)
+                # Optional: also create WhatsApp history record manually
+                self.env['whatsapp.history'].sudo().create({
+                    'message': message,
+                    'message_id': '',
+                    'author_id': user_partner.id,
+                    'type': 'sent',
+                    'partner_id': partner.id,
+                    'phone': phone,
+                    'provider_id': provider.id,
+                    'company_id': provider.company_id.id,
+                    'date': current_dt,
+                })
+
+            except Exception as e:
+
+                Log.create({
+                    'message': message,
+                    'vehicle_id': vehicle.id,
+                    'partner_id': partner.id,
+                    'phone': phone,
+                    'status': 'failed',
+                    'api_response': str(e),
+                    'date': current_dt,
+                })
+
+                _logger.error("WhatsApp Cron Error: %s", str(e))
 
 
 class AccountMove(models.Model):

@@ -1,0 +1,88 @@
+<odoo>
+    <record model="ir.ui.view" id="whatsapp_history_form_view">
+        <field name="name">whatsapp.history.form</field>
+        <field name="model">whatsapp.history</field>
+        <field name="arch" type="xml">
+            <form string="WhatsApp History">
+                <header>
+                    <field name="type" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="provider_id"/>
+                        <field name="company_id"/>
+                        <field name="model"/>
+                        <field name="date"/>
+                        <field name="author_id"/>
+                        <field name="partner_id"/>
+                        <field name="phone"/>
+                        <field name="message"/>
+                        <field name="message_id"/>
+                        <field name="mail_message_id"/>
+                        <field name="rec_id"/>
+                        <field name="fail_reason"/>
+                        <field name="active" invisible="1"/>
+                        <field name="allowed_company_ids" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+     <record model="ir.ui.view" id="whatsapp_history_tree_view">
+        <field name="name">whatsapp.history.tree</field>
+        <field name="model">whatsapp.history</field>
+        <field name="arch" type="xml">
+            <list string="WhatsApp History" default_order="create_date desc">
+                <field name="provider_id"/>
+                <field name="date"/>
+                <field name="author_id"/>
+                <field name="partner_id"/>
+                <field name="phone"/>
+                <field name="message"/>
+<!--                <field name="model"/>-->
+                <field name="type"/>
+<!--                <field name="active" invisible="1"/>-->
+<!--                <field name="allowed_company_ids" invisible="1"/>-->
+            </list>
+        </field>
+    </record>
+
+    <!--
+    <record id="whatsapp_history_search" model="ir.ui.view">
+    <field name="name">whatsapp.history.search</field>
+    <field name="model">whatsapp.history</field>
+    <field name="arch" type="xml">
+        <search>
+
+            <field name="create_date"/>
+
+            <filter string="Today"
+                    name="today"
+                    domain="[('create_date','>=',context_today())]"/>
+
+            <group expand="0" string="Group By">
+                <filter string="Created On"
+                        context="{'group_by':'create_date'}"/>
+            </group>
+        </search>
+    </field>
+</record>
+-->
+
+
+
+    <record model="ir.actions.act_window" id="whatsapp_history_action">
+        <field name="name">WhatsApp History</field>
+        <field name="res_model">whatsapp.history</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('company_id', 'in', allowed_company_ids)]</field>
+    </record>
+
+    <menuitem id="whatsapp_history_menu"
+              name="WhatsApp History"
+              parent="wa_msgs_menu"
+              action="whatsapp_history_action"
+              sequence="1"
+              groups="aos_whatsapp_base_aretx.whatsapp_group_user"/>
+</odoo>
