@@ -1,0 +1,73 @@
+<odoo>
+
+    <!-- list View -->
+    <record id="view_wa_cron_log_list" model="ir.ui.view">
+        <field name="name">wa.cron.log.list</field>
+        <field name="model">wa.cron.log</field>
+        <field name="arch" type="xml">
+            <list string="WA Cron Logs">
+                <field name="date"/>
+                <field name="vehicle_id"/>
+                <field name="partner_id"/>
+                <field name="phone"/>
+                <field name="status"/>
+                <field name="provider_id"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+
+    <!-- Form View -->
+    <record id="view_wa_cron_log_form" model="ir.ui.view">
+        <field name="name">wa.cron.log.form</field>
+        <field name="model">wa.cron.log</field>
+        <field name="arch" type="xml">
+            <form string="WA Cron Log">
+                <sheet>
+
+                    <group>
+                        <field name="date"/>
+                        <field name="status"/>
+                    </group>
+
+                    <group>
+                        <field name="vehicle_id"/>
+                        <field name="partner_id"/>
+                        <field name="phone"/>
+                    </group>
+
+                    <group>
+                        <field name="provider_id"/>
+                        <field name="company_id"/>
+                        <field name="author_id"/>
+                    </group>
+
+                    <group string="Message Details">
+                        <field name="message" colspan="2"/>
+                        <field name="api_response" colspan="2"/>
+                        <field name="message_id"/>
+                    </group>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_wa_cron_log" model="ir.actions.act_window">
+        <field name="name">WA Cron Logs</field>
+        <field name="res_model">wa.cron.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+
+    <!-- Menu -->
+    <menuitem id="menu_wa_cron_log"
+              name="Wa Cron Logs"
+              parent="whatsapp_history_menu"
+              action="action_wa_cron_log"
+              groups="aos_whatsapp_base_aretx.whatsapp_group_user"/>
+
+
+</odoo>

@@ -1,0 +1,18 @@
+<odoo>
+    <data>
+        <record id="whatsapp_group_invoice_user" model="res.groups">
+            <field name="name">Allow to send message from Invoice</field>
+            <field
+                name="implied_ids"
+                eval="[(4,ref('aos_whatsapp_base_aretx.whatsapp_group_user'))]"
+            />
+        </record>
+
+        <record id="aos_whatsapp_base_aretx.whatsapp_group_manager" model="res.groups">
+            <field
+                name="implied_ids"
+                eval="[(4,ref('aos_whatsapp_message_aretx.whatsapp_group_invoice_user'))]"
+            />
+        </record>
+    </data>
+</odoo>

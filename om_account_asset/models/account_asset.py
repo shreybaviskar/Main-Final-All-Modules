@@ -275,10 +275,14 @@ class AccountAssetAsset(models.Model):
         undone_dotation_number = self.method_number
         if self.method_time == 'end':
             end_date = self.method_end
+            # HARD GUARD — REQUIRED
+            if not end_date:
+                raise ValidationError(
+                    _("Ending Date is required when Time Method is 'Ending Date'.")
+                )
             undone_dotation_number = 0
             while depreciation_date <= end_date:
-                depreciation_date = date(depreciation_date.year, depreciation_date.month,
-                                         depreciation_date.day) + relativedelta(months=+self.method_period)
+                depreciation_date += relativedelta(months=self.method_period)
                 undone_dotation_number += 1
         if self.prorata:
             undone_dotation_number += 1
@@ -383,7 +387,7 @@ class AccountAssetAsset(models.Model):
         view_mode = 'form'
         if len(move_ids) > 1:
             name = _('Disposal Moves')
-            view_mode = 'tree,form'
+            view_mode = 'list,form'
         return {
             'name': name,
             'view_type': 'form',
