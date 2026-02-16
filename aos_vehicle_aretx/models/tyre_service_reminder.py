@@ -21,6 +21,7 @@ class TyreServiceReminder(models.Model):
     _name = 'tyre.service.reminder'
     _description = 'Tyre Service Reminder Cron'
 
+    # preffered
     @api.model
     def _cron_tyre_service_reminder1(self, account_type=2):
         message = "hi test from Odoo via Green API"
@@ -39,158 +40,192 @@ class TyreServiceReminder(models.Model):
 
         return False
 
+    #production
     @api.model
     def _cron_tyre_service_reminder(self, account_type=2):
-        """Send reminder messages per vehicle based on configuration."""
+
         ir_config = self.env['ir.config_parameter'].sudo()
         km_limit = int(ir_config.get_param('tyreshop.tyre_message_km', default=5000))
         month_limit = int(ir_config.get_param('tyreshop.tyre_message_months', default=3))
 
-        print('system settings')
-        print(km_limit, month_limit)
-
         today = fields.Date.today()
+        current_dt = fields.Datetime.now()
+
         Vehicle = self.env['vehicle.master.model'].sudo()
-        print('today date', today)
-        print('Vehicle', Vehicle)
+        Log = self.env['aretx.sms.cron.log'].sudo()
 
         vehicles = Vehicle.search([('x_avg_km', '>', 0)])
-        print('vehicles', vehicles)
-        template_id = self.env['custom.sms.templates'].browse(1)
+        template = self.env['custom.sms.templates'].browse(1)
+
+        if not template:
+            _logger.error("SMS Template not found.")
+            return
 
         for vehicle in vehicles:
-            # Get last date properly
-            c_data = template_id.description
-            print('c_data', c_data)
-            last_date = vehicle.last_message_date
-            # print('last_date', last_date)
-            if not last_date and vehicle.create_date:
-                # Convert datetime to date
-                last_date = vehicle.create_date.date()
-            elif not last_date:
-                last_date = today
-            print('last_date', last_date)
-            days_since_last = (today - last_date).days
-            print('days_since_last', days_since_last)
-            months_since_last = days_since_last / 30.0
-            print('months_since_last', months_since_last)
-            monthly_avg = vehicle.x_avg_km  # Assuming this is "average km per month"
-            print('monthly_avg', monthly_avg)
-            expected_km = monthly_avg * months_since_last
-            print('expected_km', expected_km)
-            # Safe subtraction (both are datetime.date)
-            days_diff = (today - last_date).days
-            print('days_diff', days_diff)
-            month_days = month_limit * 30
-            print('month_days', month_days)
-            km_due = vehicle.x_avg_km >= km_limit
-            print('expected_km')
-            print(expected_km)
-            print('km_limit')
-            print(km_limit)
-            km_due = expected_km >= km_limit
-            print('km_due')
-            print(km_due)
-            month_due = days_diff >= month_days
-            month_due = months_since_last >= month_limit
-            print('month_due')
-            print(month_due)
-            partner = vehicle.x_customer_id
-            print(partner.mobile)
-            if not partner.mobile:
-                raise ValidationError("Please update the mobile number before proceeding!")
 
-            if km_due or month_due and partner.mobile:
+            try:
                 partner = vehicle.x_customer_id
-                print('started a sending a msg to partner !!!!')
-                print(vehicle.x_customer_id)
-                print(partner)
-                print(vehicle)
-                x_avg_km = vehicle.x_avg_km
-                message = (
-                    f"Dear {partner.name}, Mobile Number {partner.mobile}, your vehicle ({vehicle.x_vehicle_number_id or partner_id.name}) "
-                    f"has run {vehicle.x_avg_km} KM. It's time for a tyre service check!"
+                if not partner:
+                    continue
+
+                phone = partner.mobile or partner.phone
+                if not phone:
+                    Log.create({
+                        'res_model': 'vehicle.master.model',
+                        'res_id': vehicle.id,
+                        'vehicle_id': vehicle.id,
+                        'partner_id': partner.id,
+                        'phone': '',
+                        'message': 'Phone missing',
+                        'delivery_status': 'skipped',
+                        'error_message': 'Missing mobile/phone',
+                    })
+                    continue
+
+                clean_phone = str(phone).replace("+91", "").replace(" ", "").strip()
+
+
+                last_date = vehicle.last_message_date
+
+                if not last_date and vehicle.create_date:
+                    last_date = vehicle.create_date.date()
+                elif not last_date:
+                    last_date = today
+
+                days_since_last = (today - last_date).days
+                months_since_last = days_since_last / 30.0
+                expected_km = vehicle.x_avg_km * months_since_last
+
+                km_due = expected_km >= km_limit
+                month_due = months_since_last >= month_limit
+
+                if not (km_due or month_due):
+                    Log.create({
+                        'res_model': 'vehicle.master.model',
+                        'res_id': vehicle.id,
+                        'vehicle_id': vehicle.id,
+                        'partner_id': partner.id,
+                        'phone': phone,
+                        'message': 'Service not due yet',
+                        'delivery_status': 'skipped',
+                    })
+                    continue
+
+                # Build Template Message
+                message = template.description or ''
+
+                message = message.replace("%partner_name%", partner.name or "")
+                message = message.replace(
+                    "%vehicle_x_vehicle_number_id%",
+                    vehicle.x_vehicle_number_id or ""
                 )
-                print('x_avg_km', x_avg_km)
-
-                # Post message to chatter
-                if c_data is not False and partner and '%partner_name%' in c_data:
-                    c_data = c_data.replace("%partner_name%", partner.name)
-
-                if c_data is not False and '%vehicle_x_vehicle_number_id%' in c_data:
-                    c_data = c_data.replace("%vehicle_x_vehicle_number_id%", vehicle.x_vehicle_number_id)
-                print('c_data', c_data)
-                if c_data is not False and '%vehicle_x_avg_km%' in c_data:
-                    c_data = c_data.replace("%vehicle_x_avg_km%", str(x_avg_km))
-                print('c_data', c_data)
+                message = message.replace(
+                    "%vehicle_x_avg_km%",
+                    str(int(expected_km))
+                )
 
                 partner.message_post(body=message)
-                # Reset values
                 vehicle.last_message_date = today
-                # create entry in aretx_sms_composer
-                if vehicle:
-                    aretx_sms_composer = self.env['aretx.sms.composer'].create({
-                        'res_model': 'vehicle.master.model',  # self.partner_id.id,
-                        'res_id': vehicle.id,  # self.partner_id.id,
-                        'number': partner.mobile,
-                        'number_field_name': 'phone',
-                        'partner_id': partner.id,
-                        'vehicle_id': vehicle.id,
-                        'template_id': template_id.id,
-                        'title': template_id.name,
-                        'content': c_data,
-                        'recipient_single_number_itf': partner.mobile,
-                        'vehicle_number': vehicle.x_vehicle_number_id,
-                        'is_vehicle': 1,
-                    })
-                else:
-                    aretx_sms_composer = self.env['aretx.sms.composer'].create({
-                        'res_model': 'vehicle.master.model',  # self.partner_id.id,
-                        'res_id': vehicle,  # self.partner_id.id,
-                        'number': partner.mobile,
-                        'number_field_name': 'phone',
-                        'partner_id': partner.id,
-                        'template_id': template_id.id,
-                        'title': template_id.name,
-                        'content': c_data,
-                    })
+
+
+                log_record = Log.create({
+                    'res_model': 'vehicle.master.model',
+                    'res_id': vehicle.id,
+                    'vehicle_id': vehicle.id,
+                    'partner_id': partner.id,
+                    'phone': phone,
+                    'template_id': template.id,
+                    'message': message,
+                    'delivery_status': 'failed',  # default until proven success
+                })
+
+                # Create Composer Record
+                composer = self.env['aretx.sms.composer'].sudo().create({
+                    'res_model': 'vehicle.master.model',
+                    'res_id': vehicle.id,
+                    'number': phone,
+                    'number_field_name': 'phone',
+                    'partner_id': partner.id,
+                    'vehicle_id': vehicle.id,
+                    'template_id': template.id,
+                    'title': template.name,
+                    'content': message,
+                    'recipient_single_number_itf': phone,
+                    'vehicle_number': vehicle.x_vehicle_number_id,
+                    'is_vehicle': 1,
+                })
+
+
+                # sms api
                 query = self.env['custom.sms.setting'].browse(1)
-                print('query', query)
                 query.ensure_one()
-                clean_phone = partner.mobile.replace("+91", "").strip()
-                clean_phone = partner.mobile.replace("+91", "").replace(" ", "").strip()
 
-                print(clean_phone)
-                if query:
-                    data = {}
-                    data[query.userid_map] = query.userid
-                    data[query.userid_password_map] = query.userpassword
-                    data[query.account_type_map] = account_type
-                    data[query.phonenumber_map] = clean_phone
-                    data[query.msg_map] = c_data
-                    data[query.gsm_map] = query.gsm_sendername
-                    print('data', data)
+                data = {
+                    query.userid_map: query.userid,
+                    query.userid_password_map: query.userpassword,
+                    query.account_type_map: account_type,
+                    query.phonenumber_map: clean_phone,
+                    query.msg_map: message,
+                    query.gsm_map: query.gsm_sendername,
+                }
 
-                    response = requests.get(query.send_url, data)
-                    print('sms sent to partner.')
-                    print('response', response)
-                    # response = requests.get(query.balance_url, headers=REQUEST_CUSTOM_HEADER, data=request_data)
-                    error = ["Invalid Template", "Authentication Fail", "Invalid Sender ID",
-                             'Error :- Object reference not set to an instance of an object.', "No Data Found"]
-                    if response.status_code == 200 and response.text not in error:
-                        # save msg_id in sms_delivery_report table
-                        vals_list = {}
-                        vals_list['msg_id'] = response.text
-                        vals_list['log_date'] = datetime.datetime.now().strftime("%d %B %Y")
+                response = requests.get(query.send_url, data)
 
-                        vals_list['delivery_status'] = 0  # datetime.datetime.now().strftime("%d%m%y")
-                        print('vals_list', vals_list)
-                        aretx_sms_composer.write(vals_list)
-                        # return True
-                    else:
-                        aretx_sms_composer.write(
-                            {'error_log_status': response.status_code, 'error_log_text': response.text})
-                        # return True
+                error_list = [
+                    "Invalid Template",
+                    "Authentication Fail",
+                    "Invalid Sender ID",
+                    "Error :- Object reference not set to an instance of an object.",
+                    "No Data Found"
+                ]
+
+
+                response_text = response.text.strip()
+
+                is_success = (
+                        response.status_code == 200
+                        and response_text.isdigit()
+                )
+
+                if is_success:
+
+                    composer.write({
+                        'msg_id': response_text,
+                        'log_date': datetime.datetime.now().strftime("%d %B %Y"),
+                        'delivery_status': 0,
+                    })
+
+                    log_record.write({
+                        'delivery_status': 'sent',
+                        'msg_id': response_text,
+                    })
+
+                else:
+
+                    composer.write({
+                        'error_log_status': response.status_code,
+                        'error_log_text': response_text,
+                    })
+
+                    log_record.write({
+                        'delivery_status': 'failed',
+                        'error_message': response_text,
+                    })
+
+            except Exception as e:
+
+                _logger.exception("Tyre SMS Cron Unexpected Error")
+
+                Log.create({
+                    'res_model': 'vehicle.master.model',
+                    'res_id': vehicle.id,
+                    'vehicle_id': vehicle.id,
+                    'partner_id': vehicle.x_customer_id.id if vehicle.x_customer_id else False,
+                    'phone': '',
+                    'message': 'Unexpected Exception',
+                    'delivery_status': 'failed',
+                    'error_message': str(e),
+                })
 
     @api.model
     def send_whatsapp_service_reminder(self, template, vehicle):
@@ -321,9 +356,7 @@ class TyreServiceReminder(models.Model):
                 })
                 continue
 
-            # -----------------------
             # Build Message
-            # -----------------------
             message = (
                 f"Dear {partner.name}, "
                 f"your vehicle ({vehicle.x_vehicle_number_id or ''}) "
@@ -383,9 +416,6 @@ class TyreServiceReminder(models.Model):
                     })
                     continue
 
-                # -----------------------
-                # Success
-                # -----------------------
                 vehicle.write({
                     'last_wa_message_date': today,
                 })

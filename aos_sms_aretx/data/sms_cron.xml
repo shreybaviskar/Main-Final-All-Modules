@@ -1,0 +1,26 @@
+<odoo>
+    <data noupdate="1">
+        <record id="1_ir_cron_scheduler_recurring_action" model="ir.cron">
+           <field name="name">Aretx SMS Delivery Status</field>
+           <field name="model_id" ref="model_aretx_sms_composer"/>
+           <field name="state">code</field>
+           <field name="code">model._delivery_status_check()</field>
+           <field name="user_id" ref="base.user_root"/>
+           <field name="interval_number">1</field>
+           <field name="nextcall" eval="datetime.now() + (datetime.now(pytz.timezone('Asia/Kolkata')).replace(hour=18, minute=00, second=00) - datetime.now(pytz.timezone('Asia/Kolkata'))) % timedelta(hours=24)" />
+           <field name="interval_type">days</field>
+           <field name="numbercall">-1</field>
+       </record>
+       <record id="2_ir_cron_scheduler_recurring_action" model="ir.cron">
+           <field name="name">Aretx Email-SMS Reminder</field>
+           <field name="model_id" ref="model_aretx_sms_composer"/>
+           <field name="state">code</field>
+           <field name="code">model._automatic_reminder_invoice()</field>
+           <field name="user_id" ref="base.user_root"/>
+           <field name="interval_number">1</field>
+           <field name="nextcall" eval="datetime.now() + (datetime.now(pytz.timezone('Asia/Kolkata')).replace(hour=11, minute=30, second=00) - datetime.now(pytz.timezone('Asia/Kolkata'))) % timedelta(hours=24)" />
+           <field name="interval_type">days</field>
+           <field name="numbercall">-1</field>
+       </record>
+    </data>
+</odoo>
