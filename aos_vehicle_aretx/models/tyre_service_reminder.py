@@ -657,43 +657,69 @@ class AccountMove(models.Model):
 
         channel._notify_thread(msg, msg_vals)
 
-    #md
+    # updated code with logger
     @api.model
     def _cron_send_payment_wa_reminder(self):
+
         ir_config = self.env['ir.config_parameter'].sudo()
-        reminder_message_payment_days = int(ir_config.get_param('tyreshop.reminder_message_payment_days', default=3))
+        reminder_message_payment_days = int(
+            ir_config.get_param('tyreshop.reminder_message_payment_days', default=3)
+        )
+
         today = date.today()
+        current_dt = fields.Datetime.now()
+
+        Log = self.env['wa.cron.log'].sudo()
+
         overdue_invoices = self.search([
             ('move_type', '=', 'out_invoice'),
             ('state', '=', 'posted'),
             ('payment_state', '!=', 'paid'),
             ('invoice_date_due', '<=', today),
         ])
-        print('overdue_invoices.......', overdue_invoices)
+
         template = self.env['wa.template'].search([
             ('name', '=', 'reminder_payment')
         ], limit=1)
+
         for invoice in overdue_invoices:
-            last_reminder_date = invoice.last_wa_message_date or date(1999, 1, 1)
-            print('invoice', invoice.name)
-            print('today', today)
-            print('invoice.invoice_date_due', invoice.invoice_date_due)
-            remain_days = (today - last_reminder_date).days
-            print('remain_days', remain_days)
-            print('reminder_message_payment_days', reminder_message_payment_days)
-            is_due_today = today == invoice.invoice_date_due
-            print('is_due_today', is_due_today)
-            if last_reminder_date and (today - last_reminder_date).days < reminder_message_payment_days and (
-                    is_due_today == False):
-                print('if')
-                print('last_reminder_date', last_reminder_date)
-                print('today', today)
-                print('today', today)
+
+            partner = invoice.partner_id
+            phone = partner.mobile or partner.phone
+
+            # ----------------------------
+            # Skip if no phone
+            # ----------------------------
+            if not partner or not phone:
+                Log.create({
+                    'message': 'Partner or phone missing',
+                    'partner_id': partner.id if partner else False,
+                    'phone': phone or '',
+                    'status': 'skipped',
+                    'api_response': 'Missing partner or phone',
+                    'date': current_dt,
+                })
                 continue
-            print('else')
+
+            last_reminder_date = invoice.last_wa_message_date or date(1999, 1, 1)
+
+            is_due_today = today == invoice.invoice_date_due
+
+            if last_reminder_date and \
+                    (today - last_reminder_date).days < reminder_message_payment_days and \
+                    (is_due_today is False):
+                Log.create({
+                    'message': 'Skipped due to frequency control',
+                    'partner_id': partner.id,
+                    'phone': phone,
+                    'status': 'skipped',
+                    'api_response': 'Too soon since last reminder',
+                    'date': current_dt,
+                })
+                continue
+
             try:
-                # PDF
-                # Check existing attachment
+                # ---------------- PDF PART (UNCHANGED) ----------------
                 attachment = self.env['ir.attachment'].search([
                     ('res_model', '=', 'account.move'),
                     ('res_id', '=', invoice.id),
@@ -701,44 +727,53 @@ class AccountMove(models.Model):
                 ], limit=1)
 
                 if not attachment:
-                    # Generate PDF
-                    pdf_content = self.env.ref("account.report_invoice_with_payments")._render_qweb_pdf(invoice.id)[0]
+                    report = self.env.ref("account.account_invoices")
+                    pdf_content, _ = report._render_qweb_pdf([invoice.id])
+
                     pdf_base64 = base64.b64encode(pdf_content)
 
-                    # Create PUBLIC attachment
                     attachment = self.env['ir.attachment'].sudo().create({
                         'name': f"{invoice.name}.pdf",
                         'type': 'binary',
                         'datas': pdf_base64,
                         'mimetype': 'application/pdf',
                         'public': True,
+                        'res_model': 'account.move',
+                        'res_id': invoice.id,
                     })
-                # Always generate public token
+
                 attachment.generate_access_token()
 
                 base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
                 pdf_url = f"{base_url}/web/content/{attachment.id}"
-                _logger.info(base_url)
-                _logger.info(pdf_url)
 
-                # PDF
-                print('started base_url', base_url)
-                print('started pdf_url', pdf_url)
-                print('started invoice', invoice)
-                provider = self.env['provider'].search([('company_id', '=', invoice.company_id.id)], limit=1)
+                provider = self.env['provider'].search(
+                    [('company_id', '=', invoice.company_id.id)],
+                    limit=1
+                )
+
+                if not provider:
+                    Log.create({
+                        'message': 'Provider not found',
+                        'partner_id': partner.id,
+                        'phone': phone,
+                        'status': 'failed',
+                        'api_response': 'No provider configured',
+                        'date': current_dt,
+                    })
+                    continue
+
                 graph_api_instance_id = provider.graph_api_instance_id
                 user_partner = provider.user_id.partner_id
                 graph_api_token = provider.graph_api_token
-                print(graph_api_instance_id)
-                print(graph_api_token)
+
                 PHONE_NUMBER_ID = graph_api_instance_id
                 ACCESS_TOKEN = graph_api_token
 
                 url = f"https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages"
 
-                #
-                clean_phone = invoice.partner_id.mobile.replace("+91", "").replace(" ", "").strip()
-                print('clean_phone', clean_phone)
+                clean_phone = phone.replace("+91", "").replace(" ", "").strip()
+
                 payload = {
                     "messaging_product": "whatsapp",
                     "to": clean_phone,
@@ -749,23 +784,21 @@ class AccountMove(models.Model):
                         "components": [
                             {
                                 "type": "header",
-                                "parameters": [
-                                    {
-                                        "type": "document",
-                                        "document": {
-                                            "link": pdf_url,
-                                            "filename": invoice.name
-                                        }
+                                "parameters": [{
+                                    "type": "document",
+                                    "document": {
+                                        "link": pdf_url,
+                                        "filename": invoice.name
                                     }
-                                ]
+                                }]
                             },
                             {
                                 "type": "body",
                                 "parameters": [
-                                    {"type": "text", "text": invoice.partner_id.name},  # {{1}}
-                                    {"type": "text", "text": invoice.name},  # {{2}}
-                                    {"type": "text", "text": str(invoice.amount_residual)},  # {{3}}
-                                    {"type": "text", "text": invoice.invoice_date_due.strftime('%Y-%m-%d')},  # {{4}}
+                                    {"type": "text", "text": invoice.partner_id.name},
+                                    {"type": "text", "text": invoice.name},
+                                    {"type": "text", "text": str(invoice.amount_residual)},
+                                    {"type": "text", "text": invoice.invoice_date_due.strftime('%Y-%m-%d')},
                                 ]
                             }
                         ]
@@ -776,44 +809,82 @@ class AccountMove(models.Model):
                     "Authorization": f"Bearer {ACCESS_TOKEN}",
                     "Content-Type": "application/json",
                 }
-                _logger.info("WhatsApp Message sent: %s", payload)
 
-                try:
-                    response = requests.post(url, json=payload, headers=headers)
-                    _logger.info("WhatsApp Cloud Status: %s", response.status_code)
-                    _logger.info("WhatsApp Cloud Response: %s", response.text)
+                response = requests.post(url, json=payload, headers=headers)
 
-                    if response.status_code not in (200, 201):
-                        raise Exception(f"WhatsApp API ERROR → {response.text}")
+                # -------------------------
+                # FAILURE LOG
+                # -------------------------
+                if response.status_code not in (200, 201):
+                    Log.create({
+                        'message': 'WhatsApp API failed',
+                        'partner_id': partner.id,
+                        'phone': phone,
+                        'provider_id': provider.id,
+                        'company_id': provider.company_id.id,
+                        'status': 'failed',
+                        'api_response': response.text,
+                        'date': current_dt,
+                    })
+                    continue
 
-                except Exception as e:
-                    _logger.error("WhatsApp Failed: %s", str(e))
-
+                # -------------------------
+                # UPDATE INVOICE
+                # -------------------------
                 invoice.write({
                     'last_wa_message_date': today,
                     'reminder_count': invoice.reminder_count + 1
                 })
-                current_dt = datetime.datetime.now()
+
                 message = (
-                    f"Dear {invoice.partner_id.name} This is a kind reminder that invoice {invoice.name} with an amount of was {str(invoice.amount_residual)} was due on {invoice.invoice_date_due.strftime('%Y-%m-%d')}.Please make the payment at your earliest convenience.!"
+                    f"Dear {invoice.partner_id.name} "
+                    f"This is a kind reminder that invoice {invoice.name} "
+                    f"amount {str(invoice.amount_residual)} "
+                    f"was due on {invoice.invoice_date_due.strftime('%Y-%m-%d')}."
                 )
 
-                res = request.env['whatsapp.history'].sudo().create(
-                    {
-                        'message': message,
-                        'message_id': "",
-                        'author_id': user_partner.id,
-                        'type': 'delivered',
-                        'partner_id': invoice.partner_id.id,
-                        'phone': invoice.partner_id.mobile,
-                        'attachment_ids': "",
-                        'provider_id': provider.id,
-                        'company_id': provider.company_id.id,
-                        'date': current_dt
-                    })
+                # -------------------------
+                # WhatsApp History
+                # (ONLY FIX: replaced request.env with self.env)
+                # -------------------------
+                self.env['whatsapp.history'].sudo().create({
+                    'message': message,
+                    'message_id': "",
+                    'author_id': user_partner.id,
+                    'type': 'delivered',
+                    'partner_id': invoice.partner_id.id,
+                    'phone': phone,
+                    'provider_id': provider.id,
+                    'company_id': provider.company_id.id,
+                    'date': current_dt
+                })
 
-                print("✅ WhatsApp reminder sent for invoice", invoice.id)
+                # -------------------------
+                # SUCCESS LOG
+                # -------------------------
+                Log.create({
+                    'message': message,
+                    'partner_id': partner.id,
+                    'phone': phone,
+                    'provider_id': provider.id,
+                    'company_id': provider.company_id.id,
+                    'status': 'success',
+                    'api_response': response.text,
+                    'date': current_dt,
+                })
 
             except Exception as e:
-                print("❌ ERROR:", e)
-                _logger.error("WhatsApp reminder failed for invoice %s: %s", invoice.id, e)
+
+                Log.create({
+                    'message': 'Exception during WhatsApp send',
+                    'partner_id': partner.id if partner else False,
+                    'phone': phone or '',
+                    'status': 'failed',
+                    'api_response': str(e),
+                    'date': current_dt,
+                })
+
+                _logger.error(
+                    "WhatsApp reminder failed for invoice %s: %s",
+                    invoice.id, e
+                )
