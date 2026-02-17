@@ -21,7 +21,7 @@ class TyreServiceReminder(models.Model):
     _name = 'tyre.service.reminder'
     _description = 'Tyre Service Reminder Cron'
 
-    # preffered
+
     @api.model
     def _cron_tyre_service_reminder1(self, account_type=2):
         message = "hi test from Odoo via Green API"
@@ -510,110 +510,129 @@ class AccountMove(models.Model):
 
         return attachment
 
+    # # new
     @api.model
     def _cron_send_payment_reminder(self, account_type=2):
         """Send automatic payment reminders for overdue invoices"""
+
         ir_config = self.env['ir.config_parameter'].sudo()
-        reminder_message_payment_days = int(ir_config.get_param('tyreshop.reminder_message_payment_days', default=3))
+        reminder_message_payment_days = int(
+            ir_config.get_param('tyreshop.reminder_message_payment_days', default=3)
+        )
+
         today = date.today()
-        # print('today', today)
+        current_dt = fields.Datetime.now()
+
+        Log = self.env['aretx.sms.cron.log'].sudo()  # ✅ NEW LOGGER
+
         overdue_invoices = self.search([
             ('move_type', '=', 'out_invoice'),
             ('payment_state', '!=', 'paid'),
             ('invoice_date_due', '!=', False),
             ('invoice_date_due', '<', today),
         ])
-        print('overdue_invoices', overdue_invoices)
+
         for invoice in overdue_invoices:
-            # Avoid spamming – send only once every 3 days
-            last_reminder_date = invoice.last_reminder_date or date(1999, 1, 1)
-            if last_reminder_date and (today - last_reminder_date).days < reminder_message_payment_days:
-                print('ran')
-                continue
-            print('come in')
-            partner = invoice.partner_id
-            print('partner', partner)
-            email_to = partner.email
-            print('email_to', email_to)
-            if not email_to:
-                continue
 
-            # Compose email
-            subject = _("Payment Reminder for Invoice %s") % (invoice.name)
-            body = f"""
-            <p>Dear {partner.name},</p>
-            <p>This is a kind reminder that invoice <b>{invoice.name}</b> 
-            with an amount of <b>{invoice.amount_total} {invoice.currency_id.name}</b> 
-            was due on <b>{invoice.invoice_date_due}</b>.</p>
-            <p>Please make the payment at your earliest convenience.</p>
-            <p>Thank you,<br/>
-            {invoice.company_id.name}</p>
-            """
-            body1 = "Dear %partner.name%, This is a kind reminder that invoice %invoice.name% with an amount of %inv.amount% was due on %data%.Please make the payment at your earliest convenience.Thank you"
+            try:
 
-            # Send mail
-            mail_values = {
-                'subject': subject,
-                'body_html': body,
-                'email_to': email_to,
-                'email_from': invoice.company_id.email or self.env.user.email,
-            }
-            # print('mail_values', mail_values)
-            # send Email
-            # self.env['mail.mail'].create(mail_values).send()
-            # create chatter acitivity
-            partner.message_post(body=body)
+                last_reminder_date = invoice.last_reminder_date or date(1999, 1, 1)
+                if last_reminder_date and \
+                        (today - last_reminder_date).days < reminder_message_payment_days:
+                    Log.create({
+                        'res_model': 'account.move',
+                        'res_id': invoice.id,
+                        'partner_id': invoice.partner_id.id if invoice.partner_id else False,
+                        'phone': '',
+                        'message': 'Skipped due to frequency control',
+                        'delivery_status': 'skipped',
+                    })
+                    continue
 
-            # Update reminder fields
-            invoice.write({
-                'last_reminder_date': today,
-                'last_wa_message_date': today,
-                'reminder_count': invoice.reminder_count + 1
-            })
-            print('invoice', invoice)
-            template_id = self.env['custom.sms.templates'].browse(2)
+                partner = invoice.partner_id
+                email_to = partner.email if partner else False
+                phone = partner.mobile or partner.phone if partner else False
 
-            if invoice:
+                if not phone:
+                    Log.create({
+                        'res_model': 'account.move',
+                        'res_id': invoice.id,
+                        'partner_id': partner.id if partner else False,
+                        'phone': '',
+                        'message': 'Mobile missing',
+                        'delivery_status': 'skipped',
+                        'error_message': 'Missing mobile/phone',
+                    })
+                    continue
+
+                # ---------------- EMAIL / CHATTER PART (UNCHANGED) ----------------
+                subject = _("Payment Reminder for Invoice %s") % (invoice.name)
+
+                body = f"""
+                <p>Dear {partner.name},</p>
+                <p>This is a kind reminder that invoice <b>{invoice.name}</b>
+                with an amount of <b>{invoice.amount_total} {invoice.currency_id.name}</b>
+                was due on <b>{invoice.invoice_date_due}</b>.</p>
+                <p>Please make the payment at your earliest convenience.</p>
+                <p>Thank you,<br/>
+                {invoice.company_id.name}</p>
+                """
+
+                partner.message_post(body=body)
+
+                invoice.write({
+                    'last_reminder_date': today,
+                    'last_wa_message_date': today,
+                    'reminder_count': invoice.reminder_count + 1
+                })
+
+                template_id = self.env['custom.sms.templates'].browse(2)
+
                 aretx_sms_composer = self.env['aretx.sms.composer'].create({
-                    'res_model': 'account.move',  # self.partner_id.id,
+                    'res_model': 'account.move',
                     'log_date': datetime.datetime.now().strftime("%d%B%Y"),
-                    'res_id': invoice.id,  # self.partner_id.id,
-                    'number': partner.mobile,
+                    'res_id': invoice.id,
+                    'number': phone,
                     'number_field_name': 'phone',
                     'partner_id': partner.id,
-                    # 'vehicle_id': vehicle.id,
                     'template_id': template_id.id,
                     'title': template_id.name,
                     'content': body,
-                    'recipient_single_number_itf': partner.mobile,
-                    # 'vehicle_number': vehicle.x_vehicle_number_id,
+                    'recipient_single_number_itf': phone,
                     'is_vehicle': 1,
                 })
-            else:
-                continue
-                # Send Message
 
-            query = self.env['custom.sms.setting'].browse(1)
-            c_data = template_id.description
-            # Post message to chatter
-            if c_data is not False and partner and '%partner.name%' in c_data:
-                c_data = c_data.replace("%partner.name%", partner.name)
-            if c_data is not False and '%invoice.name%' in c_data:
-                c_data = c_data.replace("%invoice.name%", invoice.name)
-            if c_data is not False and '%inv.amount%' in c_data:
-                c_data = c_data.replace("%inv.amount%", str(invoice.amount_total))
-            if c_data is not False and '%data%' in c_data:
-                c_data = c_data.replace("%data%", str(invoice.invoice_date_due))
+                # ---------------- TEMPLATE REPLACE (UNCHANGED) ----------------
+                query = self.env['custom.sms.setting'].browse(1)
+                c_data = template_id.description
 
-            print('c_data', c_data)
+                if c_data and '%partner.name%' in c_data:
+                    c_data = c_data.replace("%partner.name%", partner.name)
 
-            print('query', query)
-            query.ensure_one()
-            clean_phone = partner.mobile.replace("+91", "").strip()
-            clean_phone = partner.mobile.replace("+91", "").replace(" ", "").strip()
+                if c_data and '%invoice.name%' in c_data:
+                    c_data = c_data.replace("%invoice.name%", invoice.name)
 
-            print(clean_phone)
-            if query:
+                if c_data and '%inv.amount%' in c_data:
+                    c_data = c_data.replace("%inv.amount%", str(invoice.amount_total))
+
+                if c_data and '%data%' in c_data:
+                    c_data = c_data.replace("%data%", str(invoice.invoice_date_due))
+
+                query.ensure_one()
+                clean_phone = str(phone).replace("+91", "").replace(" ", "").strip()
+
+                # ---------------- CREATE LOG BEFORE SENDING ----------------
+                log_record = Log.create({
+                    'res_model': 'account.move',
+                    'res_id': invoice.id,
+                    'partner_id': partner.id,
+                    'phone': phone,
+                    'template_id': template_id.id,
+                    'message': c_data,
+                    'delivery_status': 'failed',  # default
+                })
+
+                # ---------------- SMS SEND ----------------
                 data = {}
                 data[query.userid_map] = query.userid
                 data[query.userid_password_map] = query.userpassword
@@ -621,31 +640,55 @@ class AccountMove(models.Model):
                 data[query.phonenumber_map] = clean_phone
                 data[query.msg_map] = c_data
                 data[query.gsm_map] = query.gsm_sendername
-                print('data', data)
 
                 response = requests.get(query.send_url, data)
-                print('sms sent to partner.')
-                print('response', response)
-                print('response', response.text)
-                # response = requests.get(query.balance_url, headers=REQUEST_CUSTOM_HEADER, data=request_data)
-                error = ["Invalid Template", "Authentication Fail", "Invalid Sender ID",
-                         'Error :- Object reference not set to an instance of an object.', "No Data Found"]
+
+                error = [
+                    "Invalid Template",
+                    "Authentication Fail",
+                    "Invalid Sender ID",
+                    'Error :- Object reference not set to an instance of an object.',
+                    "No Data Found"
+                ]
+
                 if response.status_code == 200 and response.text not in error:
-                    # save msg_id in sms_delivery_report table
-                    vals_list = {}
-                    vals_list['msg_id'] = response.text
-                    print('datetime.datetime.now')
-                    print(datetime.datetime.now().strftime("%d%m%y"))
-                    print('datetime.datetime.now')
-                    vals_list['log_date'] = datetime.datetime.now().strftime("%d %B %Y")
-                    vals_list['delivery_status'] = 0  # datetime.datetime.now().strftime("%d%m%y")
-                    # print('vals_list', vals_list)
-                    aretx_sms_composer.write(vals_list)
-                    # return True
+
+                    aretx_sms_composer.write({
+                        'msg_id': response.text,
+                        'log_date': datetime.datetime.now().strftime("%d %B %Y"),
+                        'delivery_status': 0
+                    })
+
+                    # ✅ SUCCESS LOG UPDATE
+                    log_record.write({
+                        'delivery_status': 'sent',
+                        'msg_id': response.text,
+                    })
+
                 else:
-                    aretx_sms_composer.write(
-                        {'error_log_status': response.status_code, 'error_log_text': response.text})
-                    # return True
+
+                    aretx_sms_composer.write({
+                        'error_log_status': response.status_code,
+                        'error_log_text': response.text
+                    })
+
+                    # ❌ FAILURE LOG UPDATE
+                    log_record.write({
+                        'delivery_status': 'failed',
+                        'error_message': response.text,
+                    })
+
+            except Exception as e:
+
+                Log.create({
+                    'res_model': 'account.move',
+                    'res_id': invoice.id,
+                    'partner_id': invoice.partner_id.id if invoice.partner_id else False,
+                    'phone': '',
+                    'message': 'Exception occurred',
+                    'delivery_status': 'failed',
+                    'error_message': str(e),
+                })
 
     def send_whatsapp_payment_reminder(self, template, invoice):
         self.ensure_one()
