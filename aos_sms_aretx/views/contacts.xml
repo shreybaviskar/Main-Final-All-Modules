@@ -32,12 +32,26 @@
                     <field name="mobile" widget="phone" nolabel="1"/>
                 </div>
             </xpath>
-           
+
 
         </field>
     </record>
 
-    
+    <record id="view_crm_list_mobile" model="ir.ui.view">
+        <field name="name">crm.lead.inherit.mobile</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_oppor"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='email_from']" position="before">
+                <field name="mobile"/>
+            </xpath>
+        </field>
+    </record>
+
+
+
+
+
 
 
 
