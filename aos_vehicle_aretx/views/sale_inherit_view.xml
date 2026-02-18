@@ -12,4 +12,17 @@
             </xpath>
         </field>
     </record>
+
+    <record id="inherited_sale_view_list" model="ir.ui.view">
+        <field name="name">sale.order.inherited.list</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree_with_onboarding"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='create_date']" position="after">
+                <field name="x_vehicle_number_id"/>
+                <field name="x_vehicle_number_id.x_brand_id.name"/>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>
