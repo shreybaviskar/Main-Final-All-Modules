@@ -25,6 +25,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='warranty_number']" position="before">
                     <field name="vehicle_number"/>
+                    <field name="vehicle_brand_model"/>
                 </xpath>
             </field>
         </record>

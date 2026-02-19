@@ -9,6 +9,12 @@ class CustomSale(models.Model):
                                           domain="[('x_customer_id','=',partner_id)]"))
     vehicle_kms = fields.Char(string='Vehicle KMS')
 
+    vehicle_brand_model = fields.Char(
+        string="Vehicle (Brand - Model)",
+        related="x_vehicle_number_id.display_brand_model",
+        store=True
+    )
+
     def _prepare_invoice(self):
         invoice_vals=super(CustomSale, self)._prepare_invoice()
         invoice_vals['vehicle_number']=self.x_vehicle_number_id.id
