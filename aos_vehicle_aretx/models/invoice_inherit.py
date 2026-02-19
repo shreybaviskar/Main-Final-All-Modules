@@ -11,3 +11,11 @@ class CustomInvoice(models.Model):
         string='Vehicle Number',
         domain="[('x_customer_id', '=', partner_id)]"
     )
+
+    vehicle_brand_model = fields.Char(
+        string="Vehicle (Brand - Model)",
+        related="vehicle_number.display_brand_model",
+        store=True,
+        readonly=True
+    )
+

@@ -56,7 +56,22 @@ class VehicleMaster(models.Model):
         ('1', 'Low'),
         ('2', 'High'),
         ('3', 'Very High')], string="Priority")  # priority widget
-    
+
+    display_brand_model = fields.Char(
+        string="Brand - Model",
+        compute="_compute_display_brand_model",
+        store=True
+    )
+
+    @api.depends('x_brand_id', 'x_model_id')
+    def _compute_display_brand_model(self):
+        for rec in self:
+            brand = rec.x_brand_id.name if rec.x_brand_id else ''
+            model = rec.x_model_id.name if rec.x_model_id else ''
+            if brand and model:
+                rec.display_brand_model = f"{brand} - {model}"
+            else:
+                rec.display_brand_model = brand or model or False
 
     @api.model
     def default_get(self, fields_list):

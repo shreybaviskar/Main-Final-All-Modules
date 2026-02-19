@@ -33,7 +33,6 @@
                 </div>
             </xpath>
 
-
         </field>
     </record>
 
@@ -47,12 +46,6 @@
             </xpath>
         </field>
     </record>
-
-
-
-
-
-
 
 
     <record id="crm_lead_view_form_quick_create_inherit" model="ir.ui.view">

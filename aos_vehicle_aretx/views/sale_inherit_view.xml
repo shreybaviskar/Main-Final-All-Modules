@@ -20,7 +20,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='create_date']" position="after">
                 <field name="x_vehicle_number_id"/>
-                <field name="x_vehicle_number_id.x_brand_id.name"/>
+                <field name="vehicle_brand_model"/>
             </xpath>
         </field>
     </record>
