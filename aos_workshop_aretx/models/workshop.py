@@ -1,4 +1,6 @@
 from odoo import models, fields, api
+from datetime import datetime
+
 
 class AretxWorkshop(models.Model):
     _inherit = 'vehicle.master.model'
@@ -8,7 +10,14 @@ class AretxWorkshop(models.Model):
     engine_number = fields.Char(string='Engine Number')
     fuel_type = fields.Char(string='Fuel Type')
 
-    year = fields.Date(string='Year')
+    def _get_years(self):
+        current_year = datetime.now().year
+        return [(str(y), str(y)) for y in range(current_year, 1799, -1)]
+
+    year = fields.Selection(
+        selection=_get_years,
+        string="Year"
+    )
 
 
 class SaleOrderLine(models.Model):
