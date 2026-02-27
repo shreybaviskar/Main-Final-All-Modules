@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_form_view_inherit_freight" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.freight</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <!-- Add the field after reminder_day_month_year field -->
+           <xpath expr="//field[@name='categ_id']" position="after">
+                    <field name="visible_on_pinvoice" string="Visible on Print Invoice"/>
+           </xpath>
+
+
+         <!-- <xpath expr="//field[@name='company_id']" position="after">
+                <field name="visible_on_pinvoice" invisible="type != 'service'"
+                       string="Visible on Print Invoice"
+                       help="If checked, this service will be shown separately in the print invoice report"/>
+            </xpath>-->
+        </field>
+    </record>
+</odoo>

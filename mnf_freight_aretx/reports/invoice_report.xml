@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_invoice_document_inherit_freight"
+              inherit_id="account.report_invoice_document">
+
+        <!-- Hide service lines from main invoice table -->
+        <xpath expr="//t[@t-as='line']" position="attributes">
+            <attribute name="t-if">
+                not (line.product_id.type == 'service' and line.product_id.visible_on_pinvoice)
+            </attribute>
+        </xpath>
+
+        <!-- Insert services EXACTLY above Total (same table) -->
+        <xpath expr="//t[@t-call='account.document_tax_totals']" position="before">
+
+            <t t-set="visible_services"
+               t-value="o.invoice_line_ids.filtered(
+                    lambda l: l.product_id.type == 'service'
+                    and l.product_id.visible_on_pinvoice
+               )"/>
+
+            <t t-if="visible_services">
+                <tr t-foreach="visible_services" t-as="service_line">
+                    <!-- Service name (same column as Total label) -->
+                    <td class="text-start">
+                        <span t-field="service_line.product_id.name"/>
+                    </td>
+
+                    <!-- Service amount (same column as Total amount) -->
+                    <td class="text-end">
+                        <span t-field="service_line.price_subtotal"
+                              t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                    </td>
+                </tr>
+            </t>
+
+        </xpath>
+
+        <!-- Remove internal reference and concate product name and variant -->
+        <xpath expr="//span[@t-field='line.name']" position="replace">
+            <span t-esc="line.product_id.name"/>
+            <t t-if="line.product_id.product_template_attribute_value_ids">
+                <span>
+                    (
+                    <t t-foreach="line.product_id.product_template_attribute_value_ids" t-as="attr" t-separator=", ">
+                        <t t-esc="attr.name"/>
+                    </t>
+                    )
+                </span>
+            </t>
+        </xpath>
+
+         <!-- Make discount amount field -->
+        <xpath expr="//th[@name='th_discount']" position="after">
+            <th t-if="display_discount"
+                class="text-end"
+                name="th_discount_amount">
+                DISCOUNTED AMOUNT
+            </th>
+        </xpath>
+
+        <!-- Add discount amount value -->
+        <xpath expr="//td[@name='td_discount']" position="after">
+            <td t-if="display_discount"
+                class="text-end"
+                name="td_discount_amount">
+
+                <!-- Show only if discount applied -->
+                <t t-if="line.discount &gt; 0">
+                    <span t-esc="(line.price_unit - (line.price_unit * (line.discount / 100)))"
+                          t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                </t>
+            </td>
+        </xpath>
+
+    </template>
+
+    <!-- ADD TOTAL DISCOUNT IN TOTALS SECTION -->
+    <template id="account_document_tax_totals_inherit_discount"
+              inherit_id="account.document_tax_totals">
+
+        <xpath expr="//tr[contains(@class, 'o_total')]" position="before">
+            <t t-set="total_discount"
+               t-value="sum((l.price_unit * l.quantity) - l.price_subtotal for l in o.invoice_line_ids)"/>
+            <tr t-if="total_discount &gt; 0">
+                <td>
+                    <strong>Total Discount</strong>
+                </td>
+                <td class="text-end">
+                    <span t-esc="total_discount"
+                          t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                </td>
+            </tr>
+        </xpath>
+
+    </template>
+
+</odoo>
