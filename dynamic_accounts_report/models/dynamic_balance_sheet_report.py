@@ -462,23 +462,23 @@ class ProfitLossReport(models.TransientModel):
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
         sheet = workbook.add_worksheet()
         sub_heading = workbook.add_format(
-            {'align': 'center', 'bold': True, 'font_size': '10px',
+            {'align': 'center', 'bold': True, 'font_size': 10,
              'border': 1,
              'border_color': 'black'})
         side_heading_sub = workbook.add_format(
-            {'align': 'left', 'bold': True, 'font_size': '10px',
+            {'align': 'left', 'bold': True, 'font_size': 10,
              'border': 1,
              'border_color': 'black'})
         side_heading_sub.set_indent(1)
         # Filter formats
         filter_heading = workbook.add_format(
-            {'align': 'center', 'bold': True, 'font_size': '9px', 'border': 1,
+            {'align': 'center', 'bold': True, 'font_size': 9, 'border': 1,
              'bg_color': '#D3D3D3'})
         filter_text = workbook.add_format(
-            {'align': 'left', 'font_size': '9px', 'border': 1})
-        txt_name = workbook.add_format({'font_size': '10px', 'border': 1})
+            {'align': 'left', 'font_size': 9, 'border': 1})
+        txt_name = workbook.add_format({'font_size': 10, 'border': 1})
         txt_name_left = workbook.add_format(
-            {'align': 'left', 'font_size': '10px', 'border': 1})
+            {'align': 'left', 'font_size': 10, 'border': 1})
         txt_name.set_indent(2)
         sheet.set_column(0, 0, 30)
         sheet.set_column(1, 1, 20)
