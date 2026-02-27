@@ -349,13 +349,13 @@ class ResPartner(models.Model):
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
         sheet = workbook.add_worksheet()
         cell_format_with_color = workbook.add_format({
-            'font_size': '14px', 'bold': True,
+            'font_size': 14, 'bold': True,
             'bg_color': 'yellow', 'border': 1})
-        cell_format = workbook.add_format({'font_size': '14px', 'bold': True})
-        txt = workbook.add_format({'font_size': '13px'})
-        txt_border = workbook.add_format({'font_size': '13px', 'border': 1})
+        cell_format = workbook.add_format({'font_size': 14, 'bold': True})
+        txt = workbook.add_format({'font_size': 13})
+        txt_border = workbook.add_format({'font_size': 13, 'border': 1})
         head = workbook.add_format({'align': 'center', 'bold': True,
-                                    'font_size': '22px'})
+                                    'font_size': 22})
         sheet.merge_range('B2:Q4', 'Payment Statement Report', head)
         if data['customer']:
             sheet.merge_range('B7:D7', 'Customer/Supplier : ', cell_format)
@@ -437,10 +437,10 @@ class ResPartner(models.Model):
             workbook = xlsxwriter.Workbook(output, {'in_memory': True})
             sheet = workbook.add_worksheet()
             cell_format = workbook.add_format({
-                'font_size': '14px', 'bold': True})
-            txt = workbook.add_format({'font_size': '13px'})
+                'font_size': 14, 'bold': True})
+            txt = workbook.add_format({'font_size': 13})
             head = workbook.add_format(
-                {'align': 'center', 'bold': True, 'font_size': '22px'})
+                {'align': 'center', 'bold': True, 'font_size': 22})
             sheet.merge_range('B2:P4', 'Payment Statement Report', head)
             date_style = workbook.add_format(
                 {'text_wrap': True, 'align': 'center',

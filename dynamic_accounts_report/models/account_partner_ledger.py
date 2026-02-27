@@ -47,9 +47,13 @@ class AccountPartnerLedger(models.TransientModel):
         :return: A dictionary containing the partner data for the report.
         :rtype: dict
         """
-        fiscal_year = self.env['res.company'].search([]).mapped('account_opening_date')[0].strftime('%Y-%m-%d')
-        fiscal_year_start = datetime.strptime(fiscal_year,
-                                              '%Y-%m-%d').date()
+        company = self.env.company
+        opening_date = company.account_opening_date
+
+        if not opening_date:
+            opening_date = fields.Date.today()  # fallback (or raise error)
+
+        fiscal_year_start = opening_date
         partner_dict = {}
         partner_totals = {}
         move_line_ids = self.env['account.move.line'].search(
@@ -287,10 +291,14 @@ class AccountPartnerLedger(models.TransientModel):
                             account_type_domain),
                          ('date', '<=', end_date),
                          ('parent_state', 'in', option_domain)])
-                    fiscal_year = self.env['res.company'].search([]).mapped(
-                        'account_opening_date')[0].strftime('%Y-%m-%d')
-                    date_start = datetime.strptime(fiscal_year,
-                                                          '%Y-%m-%d').date()
+                    company = self.env.company
+                    opening_date = company.account_opening_date
+
+                    if not opening_date:
+                        opening_date = fields.Date.today()  # fallback (or raise error)
+
+                    fiscal_year_start = opening_date
+                    date_start = fiscal_year_start
                     balance_move_line_ids = self.env[
                         'account.move.line'].search(
                         [('partner_id', '=', partners), (
@@ -369,16 +377,16 @@ class AccountPartnerLedger(models.TransientModel):
         head = workbook.add_format({'font_size': 15, 'align': 'center', 'bold': True})
         head_highlight = workbook.add_format({'font_size': 10, 'align': 'center', 'bold': True})
         sub_heading = workbook.add_format(
-            {'align': 'center', 'bold': True, 'font_size': '10px', 'border': 1, 'bg_color': '#D3D3D3',
+            {'align': 'center', 'bold': True, 'font_size': 10, 'border': 1, 'bg_color': '#D3D3D3',
              'border_color': 'black'})
         filter_head = workbook.add_format(
-            {'align': 'center', 'bold': True, 'font_size': '10px', 'border': 1, 'bg_color': '#D3D3D3',
+            {'align': 'center', 'bold': True, 'font_size': 10, 'border': 1, 'bg_color': '#D3D3D3',
              'border_color': 'black'})
-        filter_body = workbook.add_format({'align': 'center', 'bold': True, 'font_size': '10px'})
+        filter_body = workbook.add_format({'align': 'center', 'bold': True, 'font_size': 10})
         side_heading_sub = workbook.add_format(
-            {'align': 'left', 'bold': True, 'font_size': '10px', 'border': 1, 'border_color': 'black'})
+            {'align': 'left', 'bold': True, 'font_size': 10, 'border': 1, 'border_color': 'black'})
         side_heading_sub.set_indent(1)
-        txt_name = workbook.add_format({'font_size': '10px', 'border': 1})
+        txt_name = workbook.add_format({'font_size': 10, 'border': 1})
         txt_name.set_indent(2)
 
         # Set column widths

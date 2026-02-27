@@ -28,7 +28,8 @@ from odoo.tools import html_escape
 class XLSXReportController(http.Controller):
     @http.route('/xlsx_report', type='http', auth='user', methods=['POST'],
                 csrf=False)
-    def get_report_xlsx(self, model, data, output_format, report_name, report_action):
+    def get_report_xlsx(self, model=None, data=None, output_format='xlsx', report_name='Report',
+                        report_action=None, options=None, **kw):
         """Generate an XLSX report based on the provided data and return it as
         a response.
             Args:
