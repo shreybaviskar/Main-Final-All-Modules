@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="general_ledger_pdf_export_template">
+        <t t-call="web.basic_layout">
+
+            <t t-set="company_font" t-value="data.get('company_info', {}).get('font', 'Arial, sans-serif')"/>
+            <div t-attf-style="font-family: {{company_font}}; font-size: 12px; padding: 0px;">
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div style="max-width: 60%;">
+                        <t t-if="data.get('company_info')">
+                            <t t-if="data['company_info'].get('logo_web')">
+                                <img style="height:45px; display: block; margin-bottom: 20px;" t-att-src="'data:image/png;base64,%s' % data['company_info']['logo_web']"/>
+                            </t>
+
+                            <h5><t t-esc="data['company_info'].get('name', '')"/></h5>
+
+                            <t t-set="company_details_html" t-value="data['company_info'].get('company_details', '')"/>
+
+                            <t t-if="company_details_html and company_details_html.startswith('{') and company_details_html.endswith('}')">
+                                <t t-set="details_dict" t-value="json.loads(company_details_html)"/>
+                                <t t-set="company_details_html" t-value="details_dict.get('en_US', '')"/>
+                            </t>
+
+                            <t t-set="company_details_html" t-value="company_details_html.replace(data['company_info'].get('name', ''),'',1)"/>
+                            <t t-raw="company_details_html"/>
+
+                            <t t-esc="data['company_info'].get('vat', '')"/>
+                        </t>
+                    </div>
+                    <div style="text-align: right;">
+                        <h3 style="margin: 0;">General Ledger</h3>
+                    </div>
+                </div>
+
+                <!-- Filter info below company -->
+                <div style="margin-bottom: 15px;">
+                    <t t-if="data.get('filter_title')">
+                        <strong>Filter :</strong> <t t-esc="data['filter_title']"/>
+                    </t>
+                    <t t-if="data.get('date_from') and data.get('date_to')">
+                        <div>
+                            <strong>Period: </strong><t t-esc="data['date_from']"/> <strong>To: </strong><t t-esc="data['date_to']"/>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Ledger Table -->
+                <table style="width:100%; border-collapse: collapse; margin-bottom: 20px; page-break-before: avoid;">
+                    <tbody>
+                        <t t-foreach="data.get('grouped_data', [])" t-as="account">
+
+                            <t t-set="account_name" t-value="account.get('accountName', account.get('account_name', account.get('name', account.get('account_id', [False, 'N/A'])[1])))"/>
+
+                            <tr style="background-color: #ffffff; font-weight: bold; font-size:15px;">
+                                <td colspan="8" style="border:1px solid #000; padding:8px; text-align:left;">
+                                    <t t-esc="account_name"/>
+                                </td>
+                            </tr>
+                            <tr style="background-color: #f0f0f0; font-weight: bold;">
+                                <td style="border:1px solid #000; padding:5px; text-align:center;">Journal</td>
+                                <td style="border:1px solid #000; padding:5px; text-align:center;">Date</td>
+                                <td style="border:1px solid #000; padding:5px; text-align:center;">Communication</td>
+                                <td style="border:1px solid #000; padding:5px; text-align:center;">Partner</td>
+                                <td style="border:1px solid #000; padding:5px; text-align:center;">Currency</td>
+                                <td style="border:1px solid #000; padding:5px; text-align:center;">Debit</td>
+                                <td style="border:1px solid #000; padding:5px; text-align:center;">Credit</td>
+                                <td style="border:1px solid #000; padding:5px; text-align:center;">Balance</td>
+                            </tr>
+
+                            <t t-foreach="account.get('lines', [])" t-as="line">
+                                <tr>
+                                    <td style="border:1px solid #000; padding:5px; text-align:center;">
+                                        <t t-esc="line.get('move_name', '')"/>
+                                    </td>
+                                    <td style="border:1px solid #000; padding:5px; text-align:center;"><t t-esc="line.get('date', '')"/></td>
+                                    <td style="border:1px solid #000; padding:5px; text-align:center;"><t t-esc="line.get('name', '')"/></td>
+                                    <td style="border:1px solid #000; padding:5px; text-align:center;">
+                                        <t t-if="line.get('partner_id') and len(line['partner_id']) > 1">
+                                            <t t-esc="line['partner_id'][1]"/>
+                                        </t>
+                                    </td>
+                                    <td style="border:1px solid #000; padding:5px; text-align:center;">
+                                        <t t-if="line.get('currency_id') and len(line['currency_id']) > 1">
+                                            <t t-esc="line['currency_id'][1]"/>
+                                        </t>
+                                    </td>
+                                    <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(line.get('debit',0))"/></td>
+                                    <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(line.get('credit',0))"/></td>
+                                    <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(line.get('balance',0))"/></td>
+                                </tr>
+                            </t>
+
+                            <tr style="background-color:#f0f0f0; font-weight:bold;">
+                                <td colspan="5" style="border:1px solid #000; padding:5px; text-align:right;">Total <t t-esc="account_name"/></td>
+                                <t t-set="account_totals" t-value="account.get('totals', account)"/>
+                                <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(account_totals.get('debit', 0))"/></td>
+                                <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(account_totals.get('credit', 0))"/></td>
+                                <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(account_totals.get('balance', 0))"/></td>
+                            </tr>
+                        </t>
+
+                        <tr style="font-weight:bold; background-color: #ffffff;">
+                            <td colspan="5" style="border:1px solid #000; padding:5px; text-align:center;">TOTAL</td>
+                            <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(data.get('totals', {}).get('debit',0))"/></td>
+                            <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(data.get('totals', {}).get('credit',0))"/></td>
+                            <td style="border:1px solid #000; padding:5px; text-align:right;"><t t-esc="'₹ {:,.2f}'.format(data.get('totals', {}).get('balance',0))"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Footer -->
+                <div style="text-align:center; font-size:10px; color:#555;">
+                    Generated on: <t t-esc="datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')"/>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Report Action -->
+    <record id="general_ledger_pdf_export" model="ir.actions.report">
+        <field name="name">General Ledger PDF Report</field>
+        <field name="model">general.ledger.export</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">custom_accounting_kit_aretx.general_ledger_pdf_export_template</field>
+        <field name="report_file">custom_accounting_kit_aretx.general_ledger_pdf_export_template</field>
+        <field name="paperformat_id" ref="custom_accounting_kit_aretx.paperformat_general_ledger_compact_header"/>
+    </record>
+</odoo>

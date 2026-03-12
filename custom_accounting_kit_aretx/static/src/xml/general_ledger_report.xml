@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="custom_accounting_kit_aretx.GeneralLedgerReport" owl="1">
+        <div class="general-ledger-container">
+            <!-- Header with Filters -->
+            <div class="row mx-2 mt-3">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row mx-2 mt-0 align-items-end filter-row">
+                                <!-- Title -->
+                                <div class="col-md-2">
+                                    <span class="section-title">
+                                        <a href="" onclick="location.reload();" class="section-title">General Ledger</a>
+                                    </span>
+                                </div>
+
+                                <!-- Filters/Search/Buttons -->
+                                <div class="col d-flex justify-content-end align-items-end">
+                                    <div class="input-group me-2">
+                                        <input type="text" class="form-control" placeholder="Search here..." t-ref="search-input" t-on-keydown="onSearchKeydown"/>
+                                        <button class="btn btn-outline-primary" t-on-click="searchJournal">Search</button>
+                                    </div>
+
+                                    <div class="d-flex align-items-center gap-2 me-2">
+                                        <!-- Main Dropdown for Date Type -->
+                                        <div class="dropdown flex-shrink-0">
+                                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <t t-esc="state.dateType || 'Filter'"/>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" t-on-click="selectDateType.bind(this, 'Month')">Month</a></li>
+                                                <li><a class="dropdown-item" t-on-click="selectDateType.bind(this, 'Quarter')">Quarter</a></li>
+                                                <li><a class="dropdown-item" t-on-click="selectDateType.bind(this, 'Year')">Year</a></li>
+                                                <li><a class="dropdown-item" t-on-click="selectDateType.bind(this, 'Custom')">Custom Dates</a></li>
+                                            </ul>
+                                        </div>
+                                        <!-- Conditional Inputs as Dropdowns -->
+                                        <t t-if="state.dateType === 'Month'">
+                                            <div class="dropdown flex-grow-1">
+                                                <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                                                    <t t-esc="state.selectedMonth || 'Select Month'"/>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <t t-foreach="['January','February','March','April','May','June','July','August','September','October','November','December']" t-as="m" t-key="m">
+                                                        <li><a class="dropdown-item" t-on-click="selectMonth.bind(this, m)"><t t-esc="m"/></a></li>
+                                                    </t>
+                                                </ul>
+                                            </div>
+                                        </t>
+                                        <t t-if="state.dateType === 'Quarter'">
+                                            <div class="dropdown flex-grow-1">
+                                                <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                                                    <t t-esc="state.selectedQuarter || 'Select Quarter'"/>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" t-on-click="selectQuarter.bind(this, 'Q1')">Q1 (Jan-Mar)</a></li>
+                                                    <li><a class="dropdown-item" t-on-click="selectQuarter.bind(this, 'Q2')">Q2 (Apr-Jun)</a></li>
+                                                    <li><a class="dropdown-item" t-on-click="selectQuarter.bind(this, 'Q3')">Q3 (Jul-Sep)</a></li>
+                                                    <li><a class="dropdown-item" t-on-click="selectQuarter.bind(this, 'Q4')">Q4 (Oct-Dec)</a></li>
+                                                </ul>
+                                            </div>
+                                        </t>
+                                        <t t-if="state.dateType === 'Year'">
+                                            <input type="number" class="form-control flex-grow-1 w-auto" placeholder="YYYY" t-on-change="onYearChange"/>
+                                        </t>
+                                        <t t-if="state.dateType === 'Custom'">
+                                            <input id="date-from" type="date" class="form-control flex-grow-1 w-auto me-2" t-ref="date-from" t-on-change="onCustomDateFromChange"/>
+                                            <input id="date-to" type="date" class="form-control flex-grow-1 w-auto" t-ref="date-to"/>
+                                        </t>
+                                    </div>
+                                    <div class="d-flex">
+                                        <t t-if="state.dateType === 'Custom'">
+                                            <button class="btn btn-primary me-2" t-on-click="applyFilters">Apply</button>
+                                        </t>
+                                        <!-- Export Dropdown -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-success dropdown-toggle" t-att-disabled="!state.ledgerData.length" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Export
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" t-on-click="exportToPDF">PDF</a></li>
+                                                <li><a class="dropdown-item" t-on-click="exportToXLSX">XLSX</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <t t-if="state.isDebug">
+                                        <button class="btn btn-outline-danger ms-2" title="Debug Mode Active" t-on-click="openDebugConfig">
+                                            <i class="fa fa-bug"/>
+                                        </button>
+                                    </t>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Filter Display -->
+            <div class="row m-2">
+                <div class="col">
+                    <div class="alert alert-info py-2 mb-0">
+                        <span class="account-title" t-esc="getActiveDateRangeLabel()"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- General Ledger Body -->
+            <div class="row m-2">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div t-foreach="Object.keys(state.groupedData)" t-as="accountId" t-key="accountId" class="account-group bg-light rounded p-2">
+                                <!-- Account Header -->
+                                <div class="account-header bg-light p-2 border-bottom" t-on-click="toggleAccount.bind(this, accountId)">
+                                    <div class="row align-items-center">
+                                        <!-- Account Name -->
+                                        <div class="col-5 d-flex align-items-center">
+                                            <i t-att-class="state.collapsedAccounts[accountId] ? 'fa fa-chevron-right me-2' : 'fa fa-chevron-down me-2'"/>
+                                            <span class="account-title" t-esc="state.groupedData[accountId].accountName"/>
+                                        </div>
+
+                                        <!-- Empty Columns -->
+                                        <div class="col-2"/>
+                                        <div class="col-1"/>
+                                        <div class="col-1"/>
+
+                                        <!-- Totals Inline -->
+                                        <t t-if="state.collapsedAccounts[accountId]">
+                                            <div class="col-1 text-end">
+                                                <span t-att-class="getAmountClass(state.groupedData[accountId].totals.debit)">
+                                                    <t t-esc="formatCurrency(state.groupedData[accountId].totals.debit, state.groupedData[accountId].lines[0]?.currency_symbol || '$')"/>
+                                                </span>
+                                            </div>
+                                            <div class="col-1 text-end">
+                                                <span t-att-class="getAmountClass(state.groupedData[accountId].totals.credit)">
+                                                    <t t-esc="formatCurrency(state.groupedData[accountId].totals.credit, state.groupedData[accountId].lines[0]?.currency_symbol || '$')"/>
+                                                </span>
+                                            </div>
+                                            <div class="col-1 text-end">
+                                                <span t-att-class="getAmountClass(state.groupedData[accountId].totals.balance)">
+                                                    <t t-esc="formatCurrency(state.groupedData[accountId].totals.balance, state.groupedData[accountId].lines[0]?.currency_symbol || '$')"/>
+                                                </span>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </div>
+
+                                <!-- Account Details Table -->
+                                <t t-if="!state.collapsedAccounts[accountId]">
+                                    <table class="table table-sm mb-0">
+                                        <thead class="table-light" style="background-color: #D3D3D3;">
+                                            <tr>
+                                                <th t-if="state.config.show_journal" style="background-color: #D3D3D3; font-weight: bold;">Journal</th>
+                                                <th t-if="state.config.show_date" style="background-color: #D3D3D3; font-weight: bold;">Date</th>
+                                                <th t-if="state.config.show_communication" style="background-color: #D3D3D3; font-weight: bold;">Communication</th>
+                                                <th t-if="state.config.show_partner" style="background-color: #D3D3D3; font-weight: bold;">Partner</th>
+                                                <th t-if="state.config.show_currency" style="background-color: #D3D3D3; font-weight: bold;">Currency</th>
+                                                <th t-if="state.config.show_debit" style="background-color: #D3D3D3; font-weight: bold;" class="text-end">Debit</th>
+                                                <th t-if="state.config.show_credit" style="background-color: #D3D3D3; font-weight: bold;" class="text-end">Credit</th>
+                                                <th t-if="state.config.show_balance" style="background-color: #D3D3D3; font-weight: bold;" class="text-end">Balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-foreach="state.groupedData[accountId].lines" t-as="line" t-key="line.id"
+                                                t-on-click="() => this.viewJournalEntry(line.move_id[0])"
+                                                t-att-class="line.move_name === 'Initial Balance' ? 'table-secondary fw-bold' : ''">
+                                                <t t-if="line.move_name === 'Initial Balance'">
+
+                                                    <t t-set="cols_to_span">
+                                                        <t t-set="count" t-value="0"/>
+                                                        <t t-if="state.config.show_journal" t-set="count" t-value="count + 1"/>
+                                                        <t t-if="state.config.show_date" t-set="count" t-value="count + 1"/>
+                                                        <t t-if="state.config.show_communication" t-set="count" t-value="count + 1"/>
+                                                        <t t-if="state.config.show_partner" t-set="count" t-value="count + 1"/>
+                                                        <t t-if="state.config.show_currency" t-set="count" t-value="count + 1"/>
+                                                    </t>
+
+                                                    <td data-label="Journal" t-att-colspan="cols_to_span">
+                                                        <span class="text-muted" t-esc="line.move_name"/>
+                                                        <t t-esc="' (' + cols_to_span + ')'"/>
+                                                    </td>
+
+                                                    <td t-if="state.config.show_debit" data-label="Debit" class="text-end">
+                                                        <span t-att-class="getAmountClass(line.debit)">
+                                                            <t t-esc="line.debit > 0 ? formatCurrency(line.debit, line.currency_symbol) : line.currency_symbol + ' 0'"/>
+                                                        </span>
+                                                    </td>
+                                                    <td t-if="state.config.show_credit" data-label="Credit" class="text-end">
+                                                        <span t-att-class="getAmountClass(line.credit)">
+                                                            <t t-esc="line.credit > 0 ? formatCurrency(line.credit, line.currency_symbol) : line.currency_symbol + ' 0'"/>
+                                                        </span>
+                                                    </td>
+                                                    <td t-if="state.config.show_balance" data-label="Balance" class="text-end">
+                                                        <span t-att-class="getAmountClass(line.balance)">
+                                                            <t t-esc="formatCurrency(line.balance, line.currency_symbol)"/>
+                                                        </span>
+                                                    </td>
+                                                </t>
+                                                <t t-else="">
+                                                    <td t-if="state.config.show_journal" data-label="Journal"><span class="text-muted" t-esc="line.move_name"/></td>
+                                                    <td t-if="state.config.show_date" data-label="Date"><span t-esc="formatDate(line.date)"/></td>
+                                                    <td t-if="state.config.show_communication" data-label="Communication">
+                                                        <div class="d-flex flex-column">
+                                                            <span class="text-muted" t-esc="line.move_id[1]"/>
+                                                            <span t-esc="line.name || ''"/>
+                                                        </div>
+                                                    </td>
+                                                    <td t-if="state.config.show_partner" data-label="Partner" t-esc="line.partner_id ? line.partner_id[1] : ''"/>
+                                                    <td t-if="state.config.show_currency" data-label="Currency">
+                                                        <span class="badge bg-secondary" t-esc="line.currency_id ? line.currency_id[1] : ''"/>
+                                                    </td>
+                                                    <td t-if="state.config.show_debit" data-label="Debit" class="text-end">
+                                                        <span t-att-class="getAmountClass(line.debit)">
+                                                            <t t-esc="line.debit > 0 ? formatCurrency(line.debit, line.currency_symbol, line.currency_id ? line.currency_id[1] : null) : line.currency_symbol + ' 0'"/>
+                                                        </span>
+                                                    </td>
+                                                    <td t-if="state.config.show_credit" data-label="Credit" class="text-end">
+                                                        <span t-att-class="getAmountClass(line.credit)">
+                                                            <t t-esc="line.credit > 0 ? formatCurrency(line.credit, line.currency_symbol, line.currency_id ? line.currency_id[1] : null) : line.currency_symbol + ' 0'"/>
+                                                        </span>
+                                                    </td>
+                                                    <td t-if="state.config.show_balance" data-label="Balance" class="text-end">
+                                                        <span t-att-class="getAmountClass(line.balance)">
+                                                            <t t-esc="formatCurrency(line.balance, line.currency_symbol, line.currency_id ? line.currency_id[1] : null)"/>
+                                                        </span>
+                                                    </td>
+                                                </t>
+                                            </tr>
+
+                                            <!-- Total Row -->
+                                            <tr class="table-total">
+
+                                                <t t-set="cols_to_span">
+                                                    <t t-set="count" t-value="0"/>
+                                                    <t t-if="state.config.show_journal" t-set="count" t-value="count + 1"/>
+                                                    <t t-if="state.config.show_date" t-set="count" t-value="count + 1"/>
+                                                    <t t-if="state.config.show_communication" t-set="count" t-value="count + 1"/>
+                                                    <t t-if="state.config.show_partner" t-set="count" t-value="count + 1"/>
+                                                    <t t-if="state.config.show_currency" t-set="count" t-value="count + 1"/>
+                                                </t>
+
+                                                <td data-label="Total" t-att-colspan="cols_to_span">Total <t t-esc="state.groupedData[accountId].accountName"/></td>
+                                                <td t-if="state.config.show_debit" data-label="Debit" class="text-end">
+                                                    <t t-esc="formatCurrency(state.groupedData[accountId].totals.debit, state.groupedData[accountId].lines[0]?.currency_symbol, state.groupedData[accountId].lines[0]?.currency_id ? state.groupedData[accountId].lines[0].currency_id[1] : null)"/>
+                                                </td>
+                                                <td t-if="state.config.show_credit" data-label="Credit" class="text-end">
+                                                    <t t-esc="formatCurrency(state.groupedData[accountId].totals.credit, state.groupedData[accountId].lines[0]?.currency_symbol, state.groupedData[accountId].lines[0]?.currency_id ? state.groupedData[accountId].lines[0].currency_id[1] : null)"/>
+                                                </td>
+                                                <td t-if="state.config.show_balance" data-label="Balance" class="text-end">
+                                                    <t t-esc="formatCurrency(state.groupedData[accountId].totals.balance, state.groupedData[accountId].lines[0]?.currency_symbol, state.groupedData[accountId].lines[0]?.currency_id ? state.groupedData[accountId].lines[0].currency_id[1] : null)"/>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </t>
+                            </div>
+
+                            <!-- Grand Total Row -->
+                            <div class="grand-total bg-light p-3 border-top">
+                                <div class="row fw-bold">
+                                    <div class="col-3">
+                                        <span class="fw-bold">Total</span>
+                                    </div>
+                                    <div class="col-2"/>
+                                    <div class="col-2"/>
+                                    <div class="col-1"/>
+                                    <div class="col-1"/>
+                                    <div class="col-1 text-end">
+                                        <span t-esc="formatCurrency(state.totals.debit, state.ledgerData[0]?.currency_symbol, state.ledgerData[0]?.currency_id ? state.ledgerData[0].currency_id[1] : null)"/>
+                                    </div>
+                                    <div class="col-1 text-end">
+                                        <span t-esc="formatCurrency(state.totals.credit, state.ledgerData[0]?.currency_symbol, state.ledgerData[0]?.currency_id ? state.ledgerData[0].currency_id[1] : null)"/>
+                                    </div>
+                                    <div class="col-1 text-end">
+                                        <span t-esc="formatCurrency(state.totals.balance, state.ledgerData[0]?.currency_symbol, state.ledgerData[0]?.currency_id ? state.ledgerData[0].currency_id[1] : null)"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

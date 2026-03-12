@@ -1,0 +1,26 @@
+<odoo>
+    <record id="view_general_ledger_config_form" model="ir.ui.view">
+        <field name="name">general.ledger.report.config.form</field>
+        <field name="model">general.ledger.report.config</field>
+        <field name="arch" type="xml">
+            <form string="General Ledger Configuration">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                    </group>
+                    <group string="Column Visibility">
+                        <field name="show_journal"/>
+                        <field name="show_date"/>
+                        <field name="show_communication"/>
+                        <field name="show_partner"/>
+                        <field name="show_currency"/>
+                        <field name="show_debit"/>
+                        <field name="show_credit"/>
+                        <field name="show_balance"/>
+                    </group>
+                    <field name="company_id" readonly="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>
