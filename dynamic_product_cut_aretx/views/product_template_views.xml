@@ -1,0 +1,23 @@
+<odoo>
+
+    <record id="view_product_template_cut_fields" model="ir.ui.view">
+        <field name="name">product.template.cut.fields</field>
+        <field name="model">product.template</field>
+
+        <!-- Correct parent view -->
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+
+        <field name="arch" type="xml">
+
+            <!-- Insert after Invoicing Policy -->
+            <xpath expr="//field[@name='type']" position="after">
+
+                <field name="length"/>
+                <field name="is_parent"/>
+
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

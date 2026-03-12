@@ -1,0 +1,20 @@
+<odoo>
+    <!-- OWL General Ledger Action -->
+    <record id="action_general_ledger_owl" model="ir.actions.client">
+        <field name="name">General Ledger</field>
+        <field name="tag">custom_accounting_kit_aretx.general_ledger_owl</field>
+        <field name="target">current</field>
+    </record>
+
+    <menuitem id="menu_ledgers_parent"
+              name="Ledgers"
+              parent="account.menu_finance_reports"
+              sequence="50"/>
+
+    <menuitem id="menu_general_ledger_owl"
+              name="General Ledger"
+              parent="menu_ledgers_parent"
+              action="action_general_ledger_owl"
+              sequence="10"/>
+
+</odoo>

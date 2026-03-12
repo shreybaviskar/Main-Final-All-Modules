@@ -1,0 +1,162 @@
+/* General Ledger Custom Styles */
+
+.general-ledger-container {
+    background-color: #f8f9fa;
+    height: 100vh;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    margin: 0 auto;
+    max-width: 90%;
+}
+
+.account-header {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.account-header:hover {
+    background-color: #e9ecef !important;
+}
+
+.dropdown .fa-ellipsis-v {
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.section-title{
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.account-title {
+    font-size: 1rem;
+    font-weight: 400; /* normal weight */
+}
+
+/* Table */
+.table-sm th {
+    font-weight: 400;
+    font-size: 0.9rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+.table-sm tbody tr:hover:not(.table-total) {
+    background-color: #f1f3f5; /* light gray */
+    cursor: pointer; /* optional */
+}
+
+.table-sm td {
+    padding: 0.5rem;
+    font-weight: 400;
+    font-size: 0.9rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+}
+.table-total {
+    background-color: #fafafa;
+}
+
+/* Amount formatting */
+.amount-negative {
+    color: #dc3545 !important;
+    font-weight: 400;
+}
+.amount-positive,
+.amount-zero {
+    color: inherit;
+    font-weight: 400;
+}
+
+/* Grand total */
+.grand-total {
+    margin-bottom: 3%;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: #212529;
+}
+
+
+/* Pointer cursor on select and option hover */
+.form-select {
+    cursor: pointer;
+}
+
+.form-select option:hover {
+    background-color: #e9ecef; /* optional, for hover feedback */
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #e9ecef; /* optional, for hover feedback */
+    cursor: pointer;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) { /* Tablets and below */
+    .section-title {
+        font-size: 18px;
+    }
+    .general-ledger-container {
+        max-width: 100%;
+        padding: 0 10px 3rem 10px; /* reduce side gaps */
+    }
+    .table-sm th,
+    .table-sm td {
+        font-size: 0.8rem;
+        padding: 0.4rem;
+    }
+    .grand-total {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 768px) { /* Mobile landscape and below */
+    .filter-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .filter-row .col-md-2,
+    .filter-row .col {
+        width: 100%;
+        text-align: left;
+    }
+    .input-group {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+    .dropdown.flex-shrink-0,
+    .form-control.w-auto,
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    .account-header .row > div {
+        font-size: 0.85rem;
+    }
+    .account-title {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) { /* Smallest screens */
+    .table-sm thead {
+        display: none; /* hide table header */
+    }
+    .table-sm tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .table-sm tbody td {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        border-bottom: none;
+    }
+    .table-sm tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        flex: 0 0 50%;
+        color: #495057;
+    }
+}
