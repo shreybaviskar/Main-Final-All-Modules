@@ -69,8 +69,7 @@
 
   <menuitem
             id="parent_menu_sms_template"
-            name="Sms Template"
-            sequence="0"/>
+            name="Sms Template"/>
     <menuitem id="menu_sms_template"
               name="Sms Template"
               action="custom_sms_action_window"
