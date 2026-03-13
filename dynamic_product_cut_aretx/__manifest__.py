@@ -1,28 +1,17 @@
 {
-    'name': 'Dynamic Product Cut Aretx',
+    'name': 'Dynamic Product Cut',
     'version': '1.0',
-    'summary': '1D Dynamic Product Cutting Management',
-
-    'author': 'Aretx',
-    'category': 'Inventory',
-
-    'depends': [
-        'product',
-        'stock',
-    ],
+    'sequence': -99,
+    'application': True,
+    'depends': ['stock', 'product'],
 
     'data': [
 
         'security/ir.model.access.csv',
-
-        # Product modification
         'views/product_template_views.xml',
-
-        # Cutting screen
         'views/cut_process_views.xml',
 
     ],
-
     'installable': True,
     'application': True,
     'auto_install': False,
