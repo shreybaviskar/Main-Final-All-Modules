@@ -24,30 +24,45 @@ class DynamicProductCut(models.Model):
     def action_process_cut(self):
 
         ProductTemplate = self.env['product.template']
-        location = self.env.ref('stock.stock_location_stock')
+        StockQuant = self.env['stock.quant']
+
+        stock_location = self.env.ref('stock.stock_location_stock')
 
         for rec in self:
 
             parent_product = rec.product_id
             parent_template = parent_product.product_tmpl_id
-
             parent_length = parent_template.length
 
             if parent_product.qty_available <= 0:
-                raise UserError("No stock available for parent product")
+                raise UserError("No stock available for the parent product.")
 
-            total_cut_length = 0
+            total_cut = sum(line.length * line.quantity for line in rec.line_ids)
 
-            # Calculate total cut
-            for line in rec.line_ids:
-                total_cut_length += line.length * line.quantity
+            if total_cut > parent_length:
+                raise UserError("Cut length exceeds parent product length.")
 
-            if total_cut_length > parent_length:
-                raise UserError("Cut length exceeds parent product length")
+            remaining_length = parent_length - total_cut
 
-            remaining_length = parent_length - total_cut_length
+            # ------------------------------------------------
+            # Reduce Parent Log Stock
+            # ------------------------------------------------
 
-            # ---------- Create child products ----------
+            parent_quant = StockQuant.search([
+                ('product_id', '=', parent_product.id),
+                ('location_id', '=', stock_location.id)
+            ], limit=1)
+
+            if not parent_quant:
+                raise UserError("Parent product stock not found in WH/Stock.")
+
+            parent_quant.inventory_quantity = parent_quant.quantity - 1
+            parent_quant.action_apply_inventory()
+
+            # ------------------------------------------------
+            # Create Child Pieces
+            # ------------------------------------------------
+
             for line in rec.line_ids:
 
                 child_name = f"{parent_product.name} {line.length}m"
@@ -59,7 +74,6 @@ class DynamicProductCut(models.Model):
                 ], limit=1)
 
                 if not product:
-
                     product = ProductTemplate.create({
                         'name': child_name,
                         'length': line.length,
@@ -68,14 +82,28 @@ class DynamicProductCut(models.Model):
                         'is_storable': True,
                     })
 
-                # add stock
-                self.env['stock.quant']._update_available_quantity(
-                    product.product_variant_id,
-                    location,
-                    line.quantity
-                )
+                product_variant = product.product_variant_id
 
-            # ---------- Create remaining piece ----------
+                quant = StockQuant.search([
+                    ('product_id', '=', product_variant.id),
+                    ('location_id', '=', stock_location.id)
+                ], limit=1)
+
+                if quant:
+                    quant.inventory_quantity = quant.quantity + line.quantity
+                else:
+                    quant = StockQuant.create({
+                        'product_id': product_variant.id,
+                        'location_id': stock_location.id,
+                        'inventory_quantity': line.quantity,
+                    })
+
+                quant.action_apply_inventory()
+
+            # ------------------------------------------------
+            # Remaining Piece
+            # ------------------------------------------------
+
             if remaining_length > 0:
 
                 remain_name = f"{parent_product.name} {remaining_length}m"
@@ -87,7 +115,6 @@ class DynamicProductCut(models.Model):
                 ], limit=1)
 
                 if not remain_product:
-
                     remain_product = ProductTemplate.create({
                         'name': remain_name,
                         'length': remaining_length,
@@ -96,15 +123,20 @@ class DynamicProductCut(models.Model):
                         'is_storable': True,
                     })
 
-                self.env['stock.quant']._update_available_quantity(
-                    remain_product.product_variant_id,
-                    location,
-                    1
-                )
+                remain_variant = remain_product.product_variant_id
 
-            # ---------- Deduct parent stock ----------
-            self.env['stock.quant']._update_available_quantity(
-                parent_product,
-                location,
-                -1
-            )
+                quant = StockQuant.search([
+                    ('product_id', '=', remain_variant.id),
+                    ('location_id', '=', stock_location.id)
+                ], limit=1)
+
+                if quant:
+                    quant.inventory_quantity = quant.quantity + 1
+                else:
+                    quant = StockQuant.create({
+                        'product_id': remain_variant.id,
+                        'location_id': stock_location.id,
+                        'inventory_quantity': 1,
+                    })
+
+                quant.action_apply_inventory()
