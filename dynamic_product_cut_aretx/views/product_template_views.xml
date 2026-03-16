@@ -12,8 +12,8 @@
             <!-- Insert after Invoicing Policy -->
             <xpath expr="//field[@name='type']" position="after">
 
+                <field name="width"/>
                 <field name="length"/>
-                <field name="is_parent"/>
 
             </xpath>
 

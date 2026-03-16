@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields
 
 
 class DynamicProductCutLine(models.Model):
@@ -7,21 +7,9 @@ class DynamicProductCutLine(models.Model):
 
     cut_id = fields.Many2one(
         'dynamic.product.cut',
-        string="Cut",
+        string="Cut Process",
         ondelete='cascade'
     )
 
-    name = fields.Char(
-        string="Description",
-        compute="_compute_name",
-        store=True
-    )
-
-    length = fields.Float(string="Length")
-    quantity = fields.Integer(string="Quantity")
-
-    @api.depends('length', 'quantity', 'cut_id.product_id')
-    def _compute_name(self):
-        for rec in self:
-            if rec.cut_id.product_id:
-                rec.name = f"{rec.cut_id.product_id.name} {rec.length}mtr - {rec.quantity} qty"
+    length = fields.Float(string="Length (mtr)", required=True)
+    quantity = fields.Integer(string="Quantity", required=True)

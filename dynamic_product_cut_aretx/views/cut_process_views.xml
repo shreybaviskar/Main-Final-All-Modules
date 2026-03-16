@@ -1,16 +1,15 @@
 <odoo>
 
-    <!-- LIST VIEW -->
+    <!-- list VIEW -->
     <record id="view_dynamic_product_cut_list" model="ir.ui.view">
         <field name="name">dynamic.product.cut.list</field>
         <field name="model">dynamic.product.cut</field>
         <field name="arch" type="xml">
             <list>
-                <field name="product_id"/>
+                <field name="wood_template_id"/>
             </list>
         </field>
     </record>
-
 
     <!-- FORM VIEW -->
     <record id="view_dynamic_product_cut_form" model="ir.ui.view">
@@ -18,7 +17,7 @@
         <field name="model">dynamic.product.cut</field>
         <field name="arch" type="xml">
 
-            <form string="Dynamic Product Cut">
+            <form>
 
                 <header>
                     <button name="action_process_cut"
@@ -30,7 +29,7 @@
                 <sheet>
 
                     <group>
-                        <field name="product_id"/>
+                        <field name="wood_template_id"/>
                     </group>
 
                     <group string="Cut Lines">
@@ -38,7 +37,6 @@
                         <field name="line_ids">
 
                             <list editable="bottom">
-                                <field name="name" readonly="1"/>
                                 <field name="length"/>
                                 <field name="quantity"/>
                             </list>
@@ -54,8 +52,7 @@
         </field>
     </record>
 
-
-    <!-- ACTION -->
+     <!-- ACTION -->
     <record id="action_dynamic_product_cut" model="ir.actions.act_window">
         <field name="name">Dynamic Product Cut</field>
         <field name="res_model">dynamic.product.cut</field>
