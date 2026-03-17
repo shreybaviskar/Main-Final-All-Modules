@@ -1,6 +1,6 @@
 <odoo>
 
-    <!-- list VIEW -->
+    <!-- LIST VIEW -->
     <record id="view_dynamic_product_cut_list" model="ir.ui.view">
         <field name="name">dynamic.product.cut.list</field>
         <field name="model">dynamic.product.cut</field>
@@ -16,39 +16,27 @@
         <field name="name">dynamic.product.cut.form</field>
         <field name="model">dynamic.product.cut</field>
         <field name="arch" type="xml">
-
             <form>
-
                 <header>
                     <button name="action_process_cut"
                             type="object"
                             string="Process"
                             class="btn-primary"/>
                 </header>
-
                 <sheet>
-
                     <group>
                         <field name="wood_template_id"/>
                     </group>
-
                     <group string="Cut Lines">
-
                         <field name="line_ids">
-
                             <list editable="bottom">
                                 <field name="length"/>
                                 <field name="quantity"/>
                             </list>
-
                         </field>
-
                     </group>
-
                 </sheet>
-
             </form>
-
         </field>
     </record>
 
