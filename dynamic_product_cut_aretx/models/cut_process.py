@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields, api
 from odoo.exceptions import UserError
 
 
@@ -33,9 +33,7 @@ class DynamicProductCut(models.Model):
 
             width = rec.wood_template_id.width
 
-            # -----------------------------
-            # PREPARE CUT REQUIREMENTS
-            # -----------------------------
+            # PREPARE CUT REQUIREMETS
 
             required_lengths = []
 
@@ -45,9 +43,7 @@ class DynamicProductCut(models.Model):
 
             remaining_lengths = []
 
-            # -----------------------------
             # STEP 1 : CHECK EXACT LOGS
-            # -----------------------------
 
             for length in required_lengths:
 
@@ -72,18 +68,14 @@ class DynamicProductCut(models.Model):
                 else:
                     remaining_lengths.append(length)
 
-            # -----------------------------
             # STEP 2 : SUM REMAINING CUTS
-            # -----------------------------
 
             remaining_total = sum(remaining_lengths)
 
             if remaining_total == 0:
                 return
 
-            # -----------------------------
             # STEP 3 : FIND BEST LOG
-            # -----------------------------
 
             candidates = ProductTemplate.search([
                 ('name', 'ilike', rec.wood_template_id.name)
@@ -126,9 +118,7 @@ class DynamicProductCut(models.Model):
 
             remaining_piece = best_length - remaining_total
 
-            # -----------------------------
             # CREATE CUT PRODUCTS
-            # -----------------------------
 
             for length in remaining_lengths:
 
@@ -166,9 +156,7 @@ class DynamicProductCut(models.Model):
 
                 quant.action_apply_inventory()
 
-            # -----------------------------
             # CREATE REMAINING PIECE
-            # -----------------------------
 
             if remaining_piece > 0:
 
