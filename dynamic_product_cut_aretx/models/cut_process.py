@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields
 from odoo.exceptions import UserError
 
 
@@ -33,49 +33,59 @@ class DynamicProductCut(models.Model):
 
             width = rec.wood_template_id.width
 
-            # PREPARE CUT REQUIREMETS
+            # ----------------------------------
+            # STEP 1 : PREPARE REQUIREMENTS
+            # ----------------------------------
 
-            required_lengths = []
+            length_counter = {}
 
             for line in rec.line_ids:
-                for i in range(line.quantity):
-                    required_lengths.append(line.length)
+                length_counter[line.length] = length_counter.get(line.length, 0) + line.quantity
 
             remaining_lengths = []
 
-            # STEP 1 : CHECK EXACT LOGS
+            # ----------------------------------
+            # STEP 2 : CHECK EXISTING STOCK
+            # ----------------------------------
 
-            for length in required_lengths:
+            for length, required_qty in length_counter.items():
 
                 product = ProductTemplate.search([
                     ('name', 'ilike', rec.wood_template_id.name),
                     ('length', '=', length),
                 ], limit=1)
 
-                if not product:
-                    remaining_lengths.append(length)
+                available_qty = 0
+
+                if product:
+                    quant = StockQuant.search([
+                        ('product_id', '=', product.product_variant_id.id),
+                        ('location_id', '=', stock_location.id),
+                    ], limit=1)
+
+                    if quant:
+                        available_qty = quant.quantity
+
+                if available_qty >= required_qty:
                     continue
-
-                quant = StockQuant.search([
-                    ('product_id', '=', product.product_variant_id.id),
-                    ('location_id', '=', stock_location.id),
-                    ('quantity', '>', 0)
-                ], limit=1)
-
-                if quant:
-                    quant.inventory_quantity = quant.quantity - 1
-                    quant.action_apply_inventory()
                 else:
-                    remaining_lengths.append(length)
+                    shortage = int(required_qty - available_qty)
 
-            # STEP 2 : SUM REMAINING CUTS
+                    if shortage > 0:
+                        remaining_lengths.extend([length] * shortage)
+
+            # ----------------------------------
+            # STEP 3 : HANDLE REMAINING CUTS
+            # ----------------------------------
+
+            if not remaining_lengths:
+                return
 
             remaining_total = sum(remaining_lengths)
 
-            if remaining_total == 0:
-                return
-
-            # STEP 3 : FIND BEST LOG
+            # ----------------------------------
+            # STEP 4 : FIND BEST LOG
+            # ----------------------------------
 
             candidates = ProductTemplate.search([
                 ('name', 'ilike', rec.wood_template_id.name)
@@ -97,7 +107,7 @@ class DynamicProductCut(models.Model):
                 if not quant:
                     continue
 
-                if length >= remaining_total:
+                if length > remaining_total:
 
                     if not best_length or length < best_length:
                         best_product = product
@@ -118,7 +128,9 @@ class DynamicProductCut(models.Model):
 
             remaining_piece = best_length - remaining_total
 
-            # CREATE CUT PRODUCTS
+            # ----------------------------------
+            # STEP 5 : CREATE CUT PRODUCTS
+            # ----------------------------------
 
             for length in remaining_lengths:
 
@@ -156,7 +168,9 @@ class DynamicProductCut(models.Model):
 
                 quant.action_apply_inventory()
 
-            # CREATE REMAINING PIECE
+            # ----------------------------------
+            # STEP 6 : CREATE REMAINING PIECE
+            # ----------------------------------
 
             if remaining_piece > 0:
 
