@@ -23,24 +23,51 @@
                             string="Process"
                             class="btn-primary"/>
                 </header>
-                <sheet>
-                    <group>
-                        <field name="wood_template_id"/>
-                    </group>
-                    <group string="Cut Lines">
+
+                <group>
+                    <field name="wood_template_id"/>
+                </group>
+
+                <notebook>
+                    <!-- Existing -->
+                    <page string="Cut Lines">
                         <field name="line_ids">
                             <list editable="bottom">
                                 <field name="length"/>
                                 <field name="quantity"/>
                             </list>
                         </field>
-                    </group>
-                </sheet>
+                    </page>
+
+                    <!-- NEW PAGE 1 -->
+                    <page string="Availability">
+                        <field name="availability_ids">
+                            <list create="0" edit="0" delete="0">
+                                <field name="product_id"/>
+                                <field name="required_qty"/>
+                                <field name="available_qty"/>
+                                <field name="is_available"/>
+                            </list>
+                        </field>
+                    </page>
+
+                    <!-- NEW PAGE 2 -->
+                    <page string="Cut Details">
+                        <field name="cut_result_ids">
+                            <list create="0" edit="0" delete="0">
+                                <field name="product_id"/>
+                                <field name="quantity"/>
+                                <field name="source_product_id"/>
+                            </list>
+                        </field>
+                    </page>
+
+                </notebook>
             </form>
         </field>
     </record>
 
-     <!-- ACTION -->
+    <!-- ACTION -->
     <record id="action_dynamic_product_cut" model="ir.actions.act_window">
         <field name="name">Dynamic Product Cut</field>
         <field name="res_model">dynamic.product.cut</field>
@@ -50,13 +77,13 @@
 
     <!-- MENUS -->
     <menuitem
-        id="menu_dynamic_product_cut_root"
-        name="Dynamic Cutting"/>
+            id="menu_dynamic_product_cut_root"
+            name="Dynamic Cutting"/>
 
     <menuitem
-        id="menu_dynamic_product_cut"
-        name="Cut Process"
-        parent="menu_dynamic_product_cut_root"
-        action="action_dynamic_product_cut"/>
+            id="menu_dynamic_product_cut"
+            name="Cut Process"
+            parent="menu_dynamic_product_cut_root"
+            action="action_dynamic_product_cut"/>
 
 </odoo>
