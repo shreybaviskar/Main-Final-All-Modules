@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_dynamic_product_cut,dynamic_product_cut,model_dynamic_product_cut,,1,1,1,1
 access_dynamic_product_cut_line,dynamic_product_cut_line,model_dynamic_product_cut_line,,1,1,1,1
+access_dynamic_cut_availability,dynamic.cut.availability,model_dynamic_cut_availability,,1,1,1,1
+access_dynamic_cut_result,dynamic.cut.result,model_dynamic_cut_result,,1,1,1,1
