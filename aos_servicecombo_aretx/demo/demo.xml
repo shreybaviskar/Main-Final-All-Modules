@@ -1,0 +1,10 @@
+<odoo>
+    <data>
+        <record id="service_combo_1" model="service.combo.master">
+            <field name="name">First</field>
+        </record>
+        <record id="service_combo_2" model="service.status.master">
+            <field name="name">First</field>
+        </record>
+    </data>
+</odoo>
