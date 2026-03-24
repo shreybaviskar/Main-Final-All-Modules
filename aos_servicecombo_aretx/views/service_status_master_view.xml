@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_combo_service_status_master_form" model="ir.ui.view">
+        <field name="name">service.status.master.form</field>
+        <field name="model">service.status.master</field>
+        <field name="arch" type="xml">
+
+            <form>
+                <sheet>
+
+                    <group>
+                        <field name="service_id"/>
+<!--                        <field name="date_range" widget="daterange"/>-->
+<!--                        <field name="vehicle"/>-->
+                        <field name="start_date" widget="daterange" options="{'related_end_date': 'end_date'}"/>
+                        <field name="end_date" widget="daterange" options="{'related_start_date': 'start_date'}" readonly="1"/>
+                    </group>
+<!--                    <strong>-->
+<!--                        <field name="expiry_date"/>-->
+<!--                    </strong>-->
+<!--                        <field name="date_range1"/>-->
+
+                    <!--                            <strong><field name="customer" style="margin-right:10px;" /></strong>-->
+                    <!--                           <strong><field name="mobile" style="margin-right:10px;"/></strong>-->
+<!--                    <strong>-->
+<!--                        <field name="brand" style="margin-right:10px;"/>-->
+<!--                    </strong>-->
+<!--                    <strong>-->
+<!--                        <field name="model"/>-->
+<!--                    </strong>-->
+
+
+                    <notebook>
+                        <page string="Invoice Service Status">
+                            <field name="account_move_lines" options="{'no_create': True}">
+                                <tree string="Invoice Service Items" delete="false" create="false" edit="false" class="service_combo_tree_disable_pointer_table">
+                                    <field name="partner_id"/>
+                                    <field name="vehicle_id"/>
+                                    <field name="expiry_date"/>
+                                    <field name="phone" widget="phone" style="pointer-events:auto;"/>
+                                    <field name="is_sms_sent"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Service Status">
+<!--                                <tree string="Service Items" delete="false" create="false" edit="false">-->
+                                    <!--                                 <groupby name="saleorder_line_id">-->
+<!--                                    <t t-foreach="mydata" t-as="line">-->
+<!--                                        <t t-esc="line"/><br/>-->
+<!--                                    </t>-->
+<!--&lt;!&ndash;                                    <field name="service_combo_id"/>&ndash;&gt;-->
+<!--&lt;!&ndash;                                    <field name="service_id"/>&ndash;&gt;-->
+<!--                                    <field name="customer_phone"/>-->
+
+<!--                                </tree>-->
+<!--                                <t t-if="visible != True">-->
+                            <field name="saleorder_lines" options="{'no_create': True}">
+                                <!--                                <tree editable="bottom">-->
+<!--                                <t t-if="'partner_id' in order_id.fields_get()">-->
+                                <tree string="Service Items" delete="false" create="false" edit="false" class="service_combo_tree_disable_pointer_table">
+                                    <!--                                 <groupby name="saleorder_line_id">-->
+
+<!--                                    <field name="order_id"/>-->
+                                    <field name="order_partner_id"/>
+                                    <field name="vehicle_id"/>
+                                    <field name="expiry_date"/>
+                                    <field name="phone" widget="phone" style="pointer-events:auto;"/>
+                                    <field name="is_sms_sent"/>
+<!--                                    <field name="partner_id"/>-->
+<!--                                    <field name="customer_phone"/>-->
+                                </tree>
+<!--                                </t>-->
+                            </field>
+<!--                                </t>-->
+                        </page>
+
+
+<!--                        <page string="Service Combo">-->
+
+<!--                            <field name="saleorder_line_id" style="pointer-events:none;" options="{'no_create': True}">-->
+<!--                                &lt;!&ndash;                                <tree editable="bottom">&ndash;&gt;-->
+<!--                                <tree string="Combo Items" delete="false" create="false" edit="false">-->
+<!--                                    &lt;!&ndash;                                 <groupby name="saleorder_line_id">&ndash;&gt;-->
+
+<!--                                    <field name="service_combo_id"/>-->
+<!--                                    <field name="service_id"/>-->
+<!--                                    <field name="job_id"/>-->
+<!--                                    <field name="state"/>-->
+<!--                                    <field name="completed_date"/>-->
+<!--                                    <field name="description"/>-->
+<!--                                    <field name="expiry_date"/>-->
+<!--                                    <field name="is_infinite"/>-->
+<!--                                    <field name="saleorder_line_id" attrs="{'invisible':True,'column_invisible':True}"/>-->
+<!--&lt;!&ndash;                                    <button name="edit_combo" type="object" string="Edit"&ndash;&gt;-->
+<!--&lt;!&ndash;                                            style="pointer-events:auto!important;" context="{'create': False}"/>&ndash;&gt;-->
+<!--&lt;!&ndash;                                    <button attrs="{'invisible':[('is_infinite','=',False)]}" name="add_combo"&ndash;&gt;-->
+<!--&lt;!&ndash;                                            type="object" string="Add" style="pointer-events:auto!important;"&ndash;&gt;-->
+<!--&lt;!&ndash;                                            context="{'saleorder_line_id': saleorder_line_id,'service_combo_id': service_combo_id,'service_id':service_id,'state':state,'completed_date':completed_date,'description':description,'expiry_date':expiry_date,'is_infinite':True}"/>&ndash;&gt;-->
+<!--                                    &lt;!&ndash;                                     <button name="view_in_invoice"  type="object" string="Add"/>&ndash;&gt;-->
+
+<!--                                    &lt;!&ndash;                                                                     </groupby>&ndash;&gt;-->
+<!--                                </tree>-->
+
+
+<!--                            </field>-->
+<!--                            &lt;!&ndash;                                                                 <button name="save_combo"  type="object" string="Save"/>&ndash;&gt;-->
+
+
+<!--                        </page>-->
+
+
+                    </notebook>
+
+
+                </sheet>
+
+
+            </form>
+        </field>
+    </record>
+
+
+    <record id="action_status_combo_master" model="ir.actions.act_window">
+        <field name="name">Service Status</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">service.status.master</field>
+        <field name="res_id">1</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'create':False}</field>
+<!--        <field name="context">{}</field>-->
+    </record>
+
+<!--    <menuitem id="menu_service_status_master" name="Service Status" action="action_status_combo_master" parent="menu_Service_root"-->
+<!--              sequence="2"/>-->
+
+</odoo>
