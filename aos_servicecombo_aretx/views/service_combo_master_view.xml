@@ -22,7 +22,7 @@
         <field name="name">service.combo.master.form</field>
         <field name="model">service.combo.master</field>
         <field name="arch" type="xml">
-            <form>
+            <form create="0">
 
                 <sheet>
                     <div class="oe_title">
