@@ -19,6 +19,7 @@
     'data': [
         'views/product_template_views.xml',
         'reports/invoice_report.xml',
+        'reports/sales_report.xml',
     ],
     'installable': True,
     'application': False,

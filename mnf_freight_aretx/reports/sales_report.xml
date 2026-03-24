@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--  ADD DISCOUNTED AMOUNT COLUMN -->
+    <template id="report_saleorder_document_inherit_discount"
+              inherit_id="sale.report_saleorder_document">
+
+        <!-- Add header after discount column -->
+        <xpath expr="//th[@name='th_discount']" position="after">
+            <th t-if="display_discount"
+                class="text-end"
+                name="th_discounted_amount">
+                DISCOUNTED AMOUNT
+            </th>
+        </xpath>
+
+        <!-- Add discounted amount value after discount column -->
+        <xpath expr="//td[@name='td_product_discount']" position="after">
+            <td t-if="display_discount"
+                class="text-end"
+                name="td_product_discounted_amount">
+
+                <!-- Show discounted price (Unit Price * (1 - Discount%)) -->
+                <t t-if="not collapse_prices">
+                    <span t-esc="line.price_unit * (1 - line.discount / 100)"
+                          t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                </t>
+            </td>
+        </xpath>
+
+    </template>
+
+
+    <!--  ADD TOTAL DISCOUNT IN TOTALS SECTION -->
+    <template id="sale_document_tax_totals_inherit_discount"
+              inherit_id="sale.document_tax_totals">
+
+        <xpath expr="//tr[contains(@class, 'o_total')]" position="before">
+            <t t-set="total_discount"
+               t-value="sum((l.price_unit * l.product_uom_qty) - l.price_subtotal for l in doc.order_line if l.display_type not in ('line_section', 'line_note', 'line_subsection'))"/>
+
+            <tr t-if="total_discount &gt; 0" name="tr_total_discount">
+                <td name="td_total_discount_label">
+                    <strong>Total Discount</strong>
+                </td>
+                <td name="td_total_discount_value" class="text-end">
+                    <span t-esc="total_discount"
+                          t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                </td>
+            </tr>
+        </xpath>
+
+    </template>
+
+</odoo>
