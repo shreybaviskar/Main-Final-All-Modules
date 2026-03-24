@@ -22,14 +22,12 @@ class DynamicProductCut(models.Model):
 
     availability_ids = fields.One2many(
         'dynamic.cut.availability',
-        'cut_id',
-        string="Availability"
+        'cut_id'
     )
 
     cut_result_ids = fields.One2many(
         'dynamic.cut.result',
-        'cut_id',
-        string="Cut Results"
+        'cut_id'
     )
 
     def action_process_cut(self):
@@ -43,17 +41,19 @@ class DynamicProductCut(models.Model):
             if not rec.line_ids:
                 raise UserError("Please add cut lines.")
 
+            # -----------------------------
             # CLEAR OLD DATA
+            # -----------------------------
             rec.availability_ids.unlink()
             rec.cut_result_ids.unlink()
 
             code = rec.wood_template_id.default_code
-            prefix = '-'.join(code.split('-')[:2])  # nw-10
+            prefix = '-'.join(code.split('-')[:2])  # e.g. nw-10
 
             width = rec.wood_template_id.width
 
             # -----------------------------
-            # STEP 1: PREPARE REQUIREMENTS
+            # STEP 1: REQUIREMENTS
             # -----------------------------
             length_counter = {}
             for line in rec.line_ids:
@@ -62,7 +62,7 @@ class DynamicProductCut(models.Model):
             remaining_lengths = []
 
             # -----------------------------
-            # STEP 2: CHECK EXISTING STOCK (NO DEDUCTION)
+            # STEP 2: CHECK STOCK (NO DEDUCTION)
             # -----------------------------
             for length, required_qty in length_counter.items():
 
@@ -91,36 +91,34 @@ class DynamicProductCut(models.Model):
                     'is_available': available_qty >= required_qty
                 })
 
-                # OLD LOGIC → DO NOT CUT IF AVAILABLE
-                if available_qty >= required_qty:
-                    continue
-
-                shortage = int(required_qty - available_qty)
-
-                if shortage > 0:
+                if available_qty < required_qty:
+                    shortage = int(required_qty - available_qty)
                     remaining_lengths.extend([length] * shortage)
 
             # -----------------------------
-            # STEP 3: IF NOTHING TO CUT → EXIT
+            # STEP 3: NOTHING TO CUT
             # -----------------------------
             if not remaining_lengths:
                 return
 
             remaining_total = sum(remaining_lengths)
 
+            # 🔥 CRITICAL FIX: EXCLUDE SHORTAGE LENGTHS
+            shortage_lengths = set(remaining_lengths)
+
             # -----------------------------
-            # STEP 4: FIND BEST LOG
+            # STEP 4: FIND SINGLE BEST LOG
             # -----------------------------
             candidates = ProductTemplate.search([
-                ('default_code', 'like', f'{prefix}-%')
+                ('default_code', 'like', f'{prefix}-%'),
+                ('length', '>=', remaining_total),
+                ('length', 'not in', list(shortage_lengths))
             ])
 
             best_product = None
             best_length = None
 
             for product in candidates:
-
-                length = product.length
 
                 quant = StockQuant.search([
                     ('product_id', '=', product.product_variant_id.id),
@@ -131,13 +129,14 @@ class DynamicProductCut(models.Model):
                 if not quant:
                     continue
 
-                if length >= remaining_total:
-                    if not best_length or length < best_length:
-                        best_product = product
-                        best_length = length
+                if not best_length or product.length < best_length:
+                    best_product = product
+                    best_length = product.length
 
             if not best_product:
-                raise UserError("No suitable wood log available in stock")
+                raise UserError(
+                    f"No single log available to fulfill total requirement ({remaining_total}m)."
+                )
 
             parent_variant = best_product.product_variant_id
 
@@ -146,14 +145,19 @@ class DynamicProductCut(models.Model):
                 ('location_id', '=', stock_location.id)
             ], limit=1)
 
-            # 🔴 ONLY deduct parent log (same as old logic)
+            if not parent_quant or parent_quant.quantity <= 0:
+                raise UserError("Selected log is out of stock.")
+
+            # -----------------------------
+            # STEP 5: DEDUCT ONE LOG
+            # -----------------------------
             parent_quant.inventory_quantity = parent_quant.quantity - 1
             parent_quant.action_apply_inventory()
 
             remaining_piece = best_length - remaining_total
 
             # -----------------------------
-            # STEP 5: CREATE CUT PRODUCTS
+            # STEP 6: CREATE CUT PIECES
             # -----------------------------
             for length in remaining_lengths:
 
@@ -170,7 +174,7 @@ class DynamicProductCut(models.Model):
                         'width': width,
                         'length': length,
                         'uom_id': rec.wood_template_id.uom_id.id,
-                        'is_storable': True
+                        'is_storable': True,
                     })
 
                 variant = product.product_variant_id
@@ -191,7 +195,6 @@ class DynamicProductCut(models.Model):
 
                 quant.action_apply_inventory()
 
-                # CUT RESULT LOG
                 rec.cut_result_ids.create({
                     'cut_id': rec.id,
                     'product_id': variant.id,
@@ -200,7 +203,7 @@ class DynamicProductCut(models.Model):
                 })
 
             # -----------------------------
-            # STEP 6: REMAINING PIECE
+            # STEP 7: REMAINING PIECE
             # -----------------------------
             if remaining_piece > 0:
 
@@ -217,13 +220,13 @@ class DynamicProductCut(models.Model):
                         'width': width,
                         'length': remaining_piece,
                         'uom_id': rec.wood_template_id.uom_id.id,
-                        'is_storable': True
+                        'is_storable': True,
                     })
 
-                remain_variant = remain_product.product_variant_id
+                variant = remain_product.product_variant_id
 
                 quant = StockQuant.search([
-                    ('product_id', '=', remain_variant.id),
+                    ('product_id', '=', variant.id),
                     ('location_id', '=', stock_location.id)
                 ], limit=1)
 
@@ -231,7 +234,7 @@ class DynamicProductCut(models.Model):
                     quant.inventory_quantity = quant.quantity + 1
                 else:
                     quant = StockQuant.create({
-                        'product_id': remain_variant.id,
+                        'product_id': variant.id,
                         'location_id': stock_location.id,
                         'inventory_quantity': 1,
                     })
