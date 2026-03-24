@@ -230,6 +230,10 @@ class InvoiceStockMoveValidation(models.Model):
         if picking.state == 'draft':
             picking.action_confirm()
 
+        # ✅ FIX: Skip if no stock moves (service-only invoice creates empty picking)
+        if not picking.move_ids:
+            return
+
         # Step 2: Try to reserve stock
         picking.action_assign()
 
@@ -237,7 +241,7 @@ class InvoiceStockMoveValidation(models.Model):
         for stock_move in picking.move_ids.filtered(lambda m: m.state not in ('done', 'cancel')):
             stock_move.quantity = stock_move.product_uom_qty
             for move_line in stock_move.move_line_ids:
-                move_line.quantity = move_line.quantity or stock_move.product_uom_qty  # ✅ FIXED: reserved_uom_qty → quantity
+                move_line.quantity = move_line.quantity or stock_move.product_uom_qty
 
         # Step 4: Validate — skip_backorder & skip_immediate prevent wizard pop-ups
         picking.with_context(
