@@ -215,3 +215,41 @@ class InvoiceStockMove(models.Model):
                 move.action_stock_move()
         return res
 
+
+# This class is responsible for automatically validating the linked picking when the invoice is posted.
+
+class InvoiceStockMoveValidation(models.Model):
+    _inherit = 'account.move'
+
+    def _validate_picking(self, picking):
+        """Validate a picking automatically, bypassing wizard popups."""
+        if not picking or picking.state == 'done':
+            return
+
+        # Step 1: Confirm if still in draft
+        if picking.state == 'draft':
+            picking.action_confirm()
+
+        # Step 2: Try to reserve stock
+        picking.action_assign()
+
+        # Step 3: Force quantity on every move line (Odoo 17+ field names)
+        for stock_move in picking.move_ids.filtered(lambda m: m.state not in ('done', 'cancel')):
+            stock_move.quantity = stock_move.product_uom_qty
+            for move_line in stock_move.move_line_ids:
+                move_line.quantity = move_line.quantity or stock_move.product_uom_qty  # ✅ FIXED: reserved_uom_qty → quantity
+
+        # Step 4: Validate — skip_backorder & skip_immediate prevent wizard pop-ups
+        picking.with_context(
+            skip_backorder=True,
+            skip_immediate=True,
+        ).button_validate()
+
+    def action_stock_move(self):
+        # Run the original logic first (creates/links the picking)
+        super().action_stock_move()
+
+        # Now validate whatever picking was linked to each invoice
+        for move in self:
+            if move.invoice_picking_id and move.invoice_picking_id.state != 'done':
+                self._validate_picking(move.invoice_picking_id)
