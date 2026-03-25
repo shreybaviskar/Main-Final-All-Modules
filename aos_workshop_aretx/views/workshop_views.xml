@@ -17,7 +17,6 @@
     </record>
 
 
-
     <record id="inherited_invoice_view" model="ir.ui.view">
         <field name="name">account.move.inherited</field>
         <field name="model">account.move</field>
@@ -41,27 +40,26 @@
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_out_invoice_tree"/>
         <field name="arch" type="xml">
-                <xpath expr="//field[@name='warranty_number']" position="after">
-                    <field name="service_type"/>
-                    <field name="advisor_name"/>
-                </xpath>
-            </field>
-        </record>
+            <xpath expr="//field[@name='warranty_number']" position="after">
+                <field name="service_type" optional="hide"/>
+                <field name="advisor_name" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
 
-<!--    View in sales for contact-->
+    <!--    View in sales for contact-->
     <record id="view_form_inherited_partner_vehicle_sale" model="ir.ui.view">
         <field name="name">res.partner.vehicle.details.view.sale</field>
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
-        <xpath expr="//button[@name='view_in_invoice']" position="after">
+            <xpath expr="//button[@name='view_in_invoice']" position="after">
                 <button name="view_in_sale"
                         type="object"
                         string="View Sale Orders"/>
             </xpath>
         </field>
     </record>
-
 
 
     <record id="sale_order_form_inherit_service_fields" model="ir.ui.view">
@@ -92,8 +90,10 @@
         <field name="inherit_id" ref="sale.view_quotation_tree_with_onboarding"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='partner_id']" position="after">
-                <field name="service_type"/>
-                <field name="advisor_name"/>
+                <field name="service_type" optional="hide"/>
+                <field name="advisor_name" optional="hide"/>
+                <field name="entry_date" optional="hide"/>
+                <field name="exit_date" optional="hide"/>
             </xpath>
         </field>
     </record>
