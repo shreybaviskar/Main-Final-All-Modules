@@ -1,0 +1,64 @@
+/* Storage Card */
+.o_storage_card {
+    width: 320px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(60,64,67,.3);
+    font-family: Roboto, Arial, sans-serif;
+}
+
+/* Header */
+.o_storage_header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+}
+
+.o_storage_icon {
+    font-size: 18px;
+    color: #5f6368;
+}
+
+/* Progress Bar */
+.o_storage_progress {
+    margin-top: 10px;
+    height: 4px;
+    width: 100%;
+    background: #e8eaed;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.o_storage_progress_fill {
+    height: 100%;
+    background: #1a73e8;
+    transition: width 0.4s ease;
+}
+
+/* Usage Text */
+.o_storage_text {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #5f6368;
+}
+
+/* Button */
+.o_storage_btn {
+    margin-top: 14px;
+    padding: 6px 18px;
+    border-radius: 20px;
+    border: 1px solid #dadce0;
+    background: #fff;
+    color: #1a73e8;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.o_storage_btn:hover {
+    background: #f1f3f4;
+}

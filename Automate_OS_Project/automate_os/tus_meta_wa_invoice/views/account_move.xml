@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<odoo>
+    <record id="view_move_form_inherit_wa_account" model="ir.ui.view">
+        <field name="name">account.move.form.wa.invoice.inherit</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='preview_invoice']" position="after">
+                <button
+                    name="%(tus_meta_whatsapp_base.action_wa_compose_message_wizard)d"
+                    type="action"
+                    string="Send Invoices by WhatsApp"
+                    context="{'report': 'account.account_invoices_without_payment'}"
+                    invisible="state in 'posted'"
+                    groups="tus_meta_wa_invoice.whatsapp_group_invoice_user"
+                />
+                 <button
+                    name="%(tus_meta_whatsapp_base.action_wa_compose_message_wizard)d"
+                    type="action"
+                    string="Send Invoices by WhatsApp"
+                    context="{'report': 'account.account_invoices'}"
+                    invisible="state in 'draft'"
+                    groups="tus_meta_wa_invoice.whatsapp_group_invoice_user"
+                />
+            </xpath>
+        </field>
+    </record>
+</odoo>

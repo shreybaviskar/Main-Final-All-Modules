@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="aretx_sms_composer_view_form" model="ir.ui.view">
+        <field name="name">aretx.sms.composer.view.form</field>
+        <field name="model">aretx.sms.composer</field>
+        <field name="priority" eval="15"/>
+        <field name="arch" type="xml">
+            <form string="Send an SMS">
+                <sheet>
+                    <group>
+                        <field name="res_model" invisible="1"/>
+                        <field name="res_id" invisible="1"/>
+                        <field name="order_partner_id" invisible="1"/>
+                        <field name="number" invisible="1"/>
+                        <field name="vehicle_number" invisible="1"/>
+                        <field name="is_vehicle" invisible="1"/>
+                        <label for="recipient_single_description" string="Recipient" readonly="1"
+                               class="font-weight-bold"/>
+                        <div>
+                            <field name="recipient_single_description" class="oe_inline" readonly="1"/>
+                            <field name="recipient_single_number_itf" class="oe_inline" nolabel="1" readonly="1"/>
+                        </div>
+                        <field name="account_type"/>
+                        <field name="balance"/>
+                        <!--                        <field name="vehicle_id" domain="[('x_customer_id','=',res_id)]" attrs="{'invisible': [('is_vehicle', '=', False), ('order_partner_id', '=', False)]}"/>-->
+                        <!--                        <field name="vehicle_id" domain="[('x_customer_id','=',order_partner_id)]" attrs="{'invisible': [('is_vehicle', '=', False), ('order_partner_id', '!=', False)]}"/>-->
+
+                        <!--                        <field name="vehicle_id" widget="selection" domain="[('id','in',order_partner_id)]" attrs="{'invisible': [('is_vehicle', '=', False)]}"/>-->
+                        <field name="vehicle_id" widget="selection" domain="[('id', 'in', order_partner_id)]"
+                               invisible="not is_vehicle"/>
+                        <field name="template_id"/>
+                        <field name="title" invisible="1"/>
+                        <field name="content"/>
+
+
+                    </group>
+                </sheet>
+                <footer>
+                    <!-- attrs doesn't work for 'disabled'-->
+                    <button string="Send SMS" type="object" class="oe_highlight" name="action_send_sms"
+                            data-hotkey="q"/>
+                    <button string="Close" class="btn btn-secondary" special="cancel" data-hotkey="z"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="aretx_sms_composer_action_form" model="ir.actions.act_window">
+        <field name="name">Send SMS Text Message</field>
+        <field name="res_model">aretx.sms.composer</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record model="ir.ui.view" id="aretx_sms_composer_list">
+        <field name="name">Report</field>
+        <field name="model">aretx.sms.composer</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false" default_order="id desc">
+                <button name="open_rec" string="Open" type="object"/>
+                <field name="log_date"/>
+                <field name="recipient_single_number_itf"/>
+                <field name="vehicle_number"/>
+                <field name="delivery_status_text"/>
+                <field name="content"/>
+                <field name="error_log_status"/>
+                <field name="error_log_text"/>
+            </list>
+        </field>
+    </record>
+
+
+    <record model="ir.ui.view" id="aretx_sms_composer_list_form">
+        <field name="name">Report</field>
+        <field name="model">aretx.sms.composer</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false" delete="false" no_edit="true">
+                <sheet>
+                    <group>
+                        <field name="log_date" readonly="1"/>
+                        <field name="recipient_single_number_itf" readonly="1"/>
+                        <field name="vehicle_number" readonly="1"/>
+                        <field name="delivery_status_text" readonly="1"/>
+                        <field name="content" readonly="1"/>
+                        <field name="error_log_status" readonly="1"/>
+                        <field name="error_log_text" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

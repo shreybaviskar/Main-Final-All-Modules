@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <template id="login_powered_by_automateos" 
+                inherit_id="web.login_layout" 
+                name="Login Powered By AutomateOS">
+            
+            <xpath expr="//div[contains(@class, 'text-center')]//a[contains(@href, 'odoo')]" position="replace">
+                <a href="https://www.areterix.com" target="_blank">Powered by <strong>AutomateOS</strong></a>
+            </xpath>
+
+        </template>
+
+        <!-- HHHHHHHHHHH -->
+
+     </data>
+</odoo>

@@ -1,0 +1,76 @@
+<odoo>
+  <data noupdate="1">
+      <record model="custom.sms.setting" id="custom_sms_setting_1">
+        <field name="send_url">http://sms.infisms.co.in/API/SendSMS.aspx</field>
+        <field name="deliver_url">http://sms.infisms.co.in/API/DeliveryReport.aspx</field>
+        <field name="balance_url">http://sms.infisms.co.in/API/BalanceCheck.aspx</field>
+        <field name="schedule_create_url">http://sms.infisms.co.in/API/CreateSchedule.aspx</field>
+        <field name="schedule_send_url">http://sms.infisms.co.in/API/sendSchedulesms.aspx</field>
+        <field name="userid">YOUR INFISMS USER_ID</field>
+        <field name="userpassword">YOUR INFISMS USER_PASSWORD</field>
+        <field name="gsm_sendername">YOUR INFISMS GSM_SENDERNAME</field>
+
+        <field name="userid_map">UserID</field>
+        <field name="userid_password_map">UserPassword</field>
+        <field name="gsm_map">SenderId</field>
+        <field name="phonenumber_map">PhoneNumber</field>
+        <field name="msg_map">Text</field>
+        <field name="sent_msg_id_map">SMSID</field>
+        <field name="log_date_map">LogDate</field>
+      </record>
+  </data>
+    <data>
+
+    <!-- actions opening views on models -->
+
+    <record model="ir.actions.act_window" id="custom_sms_setting_action_window">
+      <field name="name">Sms Settings</field>
+      <field name="res_model">custom.sms.setting</field>
+      <field name="res_id">1</field>
+      <field name="view_mode">form</field>
+    </record>
+
+
+      #form_view
+    <record id="sms_setting_view" model="ir.ui.view">
+        <field name="name">custom.sms.setting.form</field>
+        <field name="model">custom.sms.setting</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0" discard="0">
+                <sheet>
+                    <group name="sms_info_setting" string="SMS API SETTINGS">
+                        <field name="send_url"/>
+                        <field name="deliver_url"/>
+                        <field name="balance_url"/>
+                        <field name="schedule_create_url"/>
+                        <field name="schedule_send_url"/>
+                        <field name="userid"/>
+                        <field name="userpassword" password="True"/>
+                        <field name="gsm_sendername"/>
+                    </group>
+
+                    <group name="sms_url_mapper_setting" string="URL MAPPER">
+                        <field name="userid_map"/>
+                        <field name="userid_password_map"/>
+                        <field name="gsm_map"/>
+                        <field name="phonenumber_map"/>
+                        <field name="msg_map"/>
+                        <field name="sent_msg_id_map"/>
+                        <field name="log_date_map"/>
+                    </group>
+                </sheet>
+
+            </form>
+        </field>
+    </record>
+
+  </data>
+   <menuitem id="menu_sms_template_setting"
+              name="Sms Setting"
+              action="custom_sms_setting_action_window"
+              parent="parent_menu_sms_template"
+             sequence="10"
+   />
+
+</odoo>

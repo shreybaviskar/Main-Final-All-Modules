@@ -1,0 +1,154 @@
+<odoo>
+
+    <template id="report_saleorder_jobcard">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="o">
+                    <div class="page">
+                        <h2 style="text-align:left;">Job Card  <span t-field="o.name"/></h2>
+<!--                        <h2 style="text-align:left;">Job Card</h2>-->
+                        <br/>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Customer:</strong>
+                                <span t-field="o.partner_id.name"/>
+                                <br/>
+                                <strong>Order Date:</strong>
+                                <span t-field="o.date_order"/>
+                                <br/>
+                                <strong>Salesperson:</strong>
+                                <span t-field="o.user_id.name"/>
+                                <br/>
+                                <!--                                <strong>Technician:</strong>-->
+                                <!--                                <span t-field="o.technician_id.name"/>-->
+
+                            </div>
+                            <div class="col-6">
+                                <strong>Vehicle Brand:</strong>
+                                <span t-field="o.x_vehicle_number_id.x_brand_id.name"/>
+                                <br/>
+                                 <strong>Vehicle Model:</strong>
+                                <span t-field="o.x_vehicle_number_id.x_model_id.name"/>
+                                <br/>
+                                  <strong>Vehicle Color:</strong>
+                                <span t-field="o.x_vehicle_number_id.x_color_id.name"/>
+                                <br/>
+                                <strong>Vehicle number:</strong>
+                                <span t-field="o.x_vehicle_number_id"/>
+                                <br/>
+                                <strong>Vehicle KMS:</strong>
+                                <span t-field="o.vehicle_kms"/>
+                                <br/>
+
+
+                            </div>
+                        </div>
+
+                        <br/>
+                        <h3>Products / Services</h3>
+                        <table class="table table-sm table-bordered" style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background-color:#eee;">
+                                    <th>Product</th>
+                                    <th>Technician</th>
+                                    <th>Description</th>
+                                    <th>Quantity</th>
+                                    <!--                                <th>Unit</th>-->
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.order_line" t-as="line">
+                                    <td>
+                                        <span t-field="line.product_id.display_name"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.technician_id_l.name"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.name"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.product_uom_qty"/>
+                                    </td>
+
+                                    <br/>
+                                    <!--                                <td>-->
+                                    <!--                                    <span t-field="line.product_uom.name"/>-->
+                                    <!--                                </td>-->
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!--                        <br/>-->
+                        <!--                        <p>-->
+                        <!--                            <strong>Notes:</strong>-->
+                        <!--                        </p>-->
+                        <!--                        <p t-field="o.note"/>-->
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="view_order_form_inherit_technician" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.technician</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Example: Add field below the Salesperson -->
+            <!--            <xpath expr="//field[@name='user_id']" position="after">-->
+            <!--                <field name="technician_id" options="{'no_open': True}"/>-->
+            <!--            </xpath>-->
+            <xpath expr="//field[@name='order_line']//field[@name='product_template_id']" position="after">
+                <field name="technician_id_l" optional="hide" options="{'no_create': True, 'no_create_edit': True}"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_move_form_inherit_onhand" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.onhand</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='quantity']" position="after">
+                <!--                <field name="product_on_hand" readonly="1"/>-->
+                <field name="product_on_hand"
+                       readonly="1"
+                       decoration-success="product_on_hand &gt; 0"
+                       decoration-danger="product_on_hand &lt;= 0"/>
+
+            </xpath>
+        </field>
+    </record>
+
+    <record id="account_move_hide_preview_button" model="ir.ui.view">
+        <field name="name">account.move.hide.preview.button</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Hide Preview button -->
+            <xpath expr="//button[@name='preview_invoice']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="sale_order_hide_preview_button" model="ir.ui.view">
+        <field name="name">sale.order.hide.preview.button</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Hide Print / Preview button -->
+            <xpath expr="//button[@name='action_preview_sale_order']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

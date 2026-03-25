@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-inherit="web.ErrorDialog" t-inherit-mode="extension">
+
+        <xpath expr="//Dialog" position="replace">
+
+            <Dialog
+                title="'🚫 Storage Limit Reached'"
+                size="'xl'"
+                modal="true"
+                class="'storage-blocking-modal'"
+                t-if="props.error.message.includes('DATABASE STORAGE LIMIT EXCEEDED')"
+            >
+
+                <div class="o_storage_block">
+
+                    <h1 style="font-size:60px;">🗄️</h1>
+
+                    <h2>Storage Full – Access Locked</h2>
+
+                    <p style="font-size:16px; margin-top:15px;">
+                        Your database has reached <b>100% storage capacity</b>.<br/>
+                        All operations are temporarily blocked.
+                    </p>
+
+                    <div class="alert alert-danger" style="margin-top:20px;">
+                        Please upgrade your storage plan to continue using the system.
+                    </div>
+
+                    <div style="margin-top:30px;">
+                        <a href="mailto:support@yourcompany.com"
+                           class="btn btn-primary btn-lg">
+                            🛒 Contact Support
+                        </a>
+                    </div>
+
+                </div>
+
+            </Dialog>
+
+        </xpath>
+
+    </t>
+
+</templates>

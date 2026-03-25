@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="inherited_subscription_package_view" model="ir.ui.view">
+        <field name="name">subscription.package.inherited</field>
+        <field name="model">subscription.package</field>
+        <field name="inherit_id" ref="subscription_package.subscription_package_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_shipping_id']" position="after">
+                <field name="vehicle_number_sub"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

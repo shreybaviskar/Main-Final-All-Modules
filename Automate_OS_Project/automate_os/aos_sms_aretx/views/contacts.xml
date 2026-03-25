@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="sms_view_form_inherited_partner" model="ir.ui.view">
+        <field name="name">res.partner.inherited_colum</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!--            <xpath expr="//page[@name='internal_notes']" position="after">-->
+            <xpath expr="//field[@name='phone']" position="after">
+                <field name="mobile" widget="phone" string="Mobile" placeholder="Mobile"/>
+            </xpath>
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="is_technician" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_crm_lead_form_inherit_mobile_final" model="ir.ui.view">
+        <field name="name">crm.lead.form.inherit.mobile</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='phone']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='website']" position="after">
+                <span style="color:#000000de;font-weight: 600 !important; font-size: 14px; margin-right: 10px;">Mobile</span>
+                <div class="o_row">
+                    <field name="mobile" widget="phone" string="Mobile"/>
+                </div>
+            </xpath>
+           
+
+        </field>
+    </record>
+
+    
+    <record id="crm_lead_view_form_quick_create_inherit" model="ir.ui.view">
+        <field name="name">crm.lead.form.quick.create.inherit</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.quick_create_opportunity_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='phone']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='email_from']" position="after">
+                <field name="mobile" widget="phone" string="Mobile" placeholder="Mobile Number"
+                       style="font-weight: bold;"/>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>
