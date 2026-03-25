@@ -75,7 +75,7 @@
                                 <t t-if="o.vehicle_number.x_model_id"><t t-esc="o.vehicle_number.x_model_id.name"/> - </t>
                                 <t t-if="o.vehicle_number.x_color_id"><t t-esc="o.vehicle_number.x_color_id.name"/> - </t> 
                                 <t t-if="o.vehicle_number.variant"><t t-esc="o.vehicle_number.variant"/> - </t> 
-                                <t t-if="o.vehicle_number.year">(<t t-esc="o.vehicle_number.year.strftime('%Y')"/>)</t>
+                                <t t-if="o.vehicle_number.year">(<t t-esc="o.vehicle_number.year"/>)</t>
                             </div>
 
                             <div class="mb-0" t-if="o.vehicle_kms"><strong>KMs:</strong> <t t-esc="o.vehicle_kms"/></div>
