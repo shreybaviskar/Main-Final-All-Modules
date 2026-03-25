@@ -291,14 +291,15 @@ class WAComposer(models.TransientModel):
                 report_xmlid = self.env.context.get('report')
 
             if report_xmlid:
-                pdf = self.env['ir.actions.report']._render_qweb_pdf(
-                    'account.account_invoices',
-                )
+                # Fallback to default reports if custom xmlid doesn't exist
+                if not self.env.ref(report_xmlid, raise_if_not_found=False):
+                    if active_model == 'sale.order':
+                        report_xmlid = 'sale.action_report_saleorder'
+                    elif active_model == 'account.move':
+                        report_xmlid = 'account.account_invoices'
 
-                b64_pdf = base64.b64encode(pdf[0])
                 Attachment = self.env['ir.attachment'].sudo()
 
-                # Filename
                 if active_model == 'sale.order':
                     name = _('Sale Order - %s') % record.name
                 elif active_model == 'account.move':
@@ -310,13 +311,17 @@ class WAComposer(models.TransientModel):
 
                 name = '%s.pdf' % name
 
-                attachment = Attachment.create({
-                    'name': name,
-                    'type': 'binary',
-                    'datas': b64_pdf,
-                    'res_model': active_model,
-                    'res_id': record.id,
-                })
+                attachment = Attachment.search([
+                    ('name', '=', name), ('res_model', '=', active_model), ('res_id', '=', record.id)
+                ], limit=1)
+
+                if not attachment:
+                    pdf = self.env['ir.actions.report']._render_qweb_pdf(report_xmlid, res_ids=record.id)
+                    b64_pdf = base64.b64encode(pdf[0])
+                    attachment = Attachment.create({
+                        'name': name, 'type': 'binary', 'datas': b64_pdf,
+                        'res_model': active_model, 'res_id': record.id,
+                    })
 
                 result['attachment_ids'] = [(4, attachment.id)]
 
