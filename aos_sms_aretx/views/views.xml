@@ -69,17 +69,16 @@
 
   <menuitem
             id="parent_menu_sms_template"
-            name="Sms Template"/>
+            name="Sms Template"
+            sequence="0"/>
     <menuitem id="menu_sms_template"
               name="Sms Template"
               action="custom_sms_action_window"
-              parent="parent_menu_sms_template"
-              sequence="10"/>
+              parent="parent_menu_sms_template"/>
   <menuitem id="menu_sms_composer"
               name="Report"
               action="aretx_sms_composer_action_window"
-              parent="parent_menu_sms_template"
-              sequence="20"/>
+              parent="parent_menu_sms_template"/>
 
 
 

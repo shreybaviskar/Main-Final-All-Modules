@@ -73,6 +73,12 @@ class ComboCreate(models.Model):
     description = fields.Char(string='Description')
     is_infinite = fields.Boolean(string='Is Infinite', default=False, readonly=True)
 
+    # adds date when state is done
+    def write(self, vals):
+        if vals.get('state') == 'done':
+            vals['completed_date'] = fields.Date.today()
+        return super().write(vals)
+
     def add_combo(self):
         """Add new combo entry based on context"""
         task1 = self.env['service.combo.tracker']

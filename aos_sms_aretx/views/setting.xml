@@ -70,7 +70,7 @@
               name="Sms Setting"
               action="custom_sms_setting_action_window"
               parent="parent_menu_sms_template"
-             sequence="40"
+             sequence="10"
    />
 
 </odoo>

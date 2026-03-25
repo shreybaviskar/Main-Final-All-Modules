@@ -134,19 +134,26 @@ class InvoiceStockMove(models.Model):
                 stockable_lines._create_stock_moves(picking)
 
     def action_stock_move(self):
+        print("original")
         for move in self:
 
             # -----------------------------
             # 1️⃣ Check Sale Order link
             # -----------------------------
             sale_orders = move.invoice_line_ids.mapped('sale_line_ids.order_id')
+            purchase_orders = move.invoice_line_ids.mapped('purchase_line_id.order_id')
 
             existing_picking = False
 
             if sale_orders:
-                # Get delivery from SO
                 existing_picking = self.env['stock.picking'].search([
                     ('sale_id', 'in', sale_orders.ids),
+                    ('state', '!=', 'cancel')
+                ], limit=1)
+
+            elif purchase_orders:
+                existing_picking = self.env['stock.picking'].search([
+                    ('purchase_id', 'in', purchase_orders.ids),
                     ('state', '!=', 'cancel')
                 ], limit=1)
 
@@ -251,6 +258,7 @@ class InvoiceStockMoveValidation(models.Model):
 
     def action_stock_move(self):
         # Run the original logic first (creates/links the picking)
+        print("vca")
         super().action_stock_move()
 
         # Now validate whatever picking was linked to each invoice

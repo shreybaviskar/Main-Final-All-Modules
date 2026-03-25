@@ -29,7 +29,6 @@
         'security/ir.model.access.csv',
         'wizard/aretx_sms_composer_views.xml',
         'views/views.xml',
-        'views/aretx_sms_cron_log_views.xml',
         'views/setting.xml',
         'views/contacts.xml',
         'views/product_template.xml',

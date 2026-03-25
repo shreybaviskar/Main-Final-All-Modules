@@ -26,7 +26,7 @@ class custom_sms_setting(models.Model):
     _description = 'custom_sms_setting.custom_sms_setting'
     _rec_name = 'gsm_sendername'
     # SMS API SETTINGS
-    account_type = fields.Selection([('2', 'Transaction'), ('1', 'Promotion'), ('3', 'OPT-IN')],'Select Account Type',default='2',required="1")
+    account_type = fields.Selection([('2', 'Transaction'), ('1', 'Promotion'), ('3', 'OPT-IN')],'Select Account Type',default='2',required=True)
     send_url = fields.Char(string='Send URL', tracking=True)
     deliver_url = fields.Char(string='Deliver URL', tracking=True)
     balance_url = fields.Char(string='Balance URL', tracking=True)
