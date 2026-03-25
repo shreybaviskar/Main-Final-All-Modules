@@ -1,4 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_aos_sms_aretx_custom_sms_templates,aos_sms_aretx.custom_sms_templates,model_custom_sms_templates,base.group_user,1,1,1,1
-access_aos_sms_aretx_custom_sms_setting,aos_sms_aretx.custom_sms_setting,model_custom_sms_setting,,1,1,1,1
-access_aos_sms_aretx_aretx_sms_composer,aos_sms_aretx.aretx_sms_composer,model_aretx_sms_composer,base.group_user,1,1,1,1

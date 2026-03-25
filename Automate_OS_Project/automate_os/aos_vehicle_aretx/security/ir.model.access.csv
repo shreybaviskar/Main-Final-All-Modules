@@ -1,7 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_vehicle_brand_model,vehicle_brand_model,model_vehicle_brand_model,base.group_user,1,1,1,1
-access_vehicle_color_model,vehicle_color_model,model_vehicle_color_model,base.group_user,1,1,1,1
-access_vehicle_type_model,vehicle_type_model,model_vehicle_type_model,base.group_user,1,1,1,1
-access_vehicle_master_model,vehicle_master_model,model_vehicle_master_model,base.group_user,1,1,1,1
-access_vehicle_model_model,vehicle_model_model,model_vehicle_model_model,base.group_user,1,1,1,1
-access_tyre_service_reminder,access_tyre_service_reminder,model_tyre_service_reminder,base.group_user,1,1,1,1
