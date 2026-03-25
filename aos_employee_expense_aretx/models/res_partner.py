@@ -58,8 +58,7 @@ class ResPartner(models.Model):
             vals['work_phone'] = self.phone
         if self.mobile:
             vals['mobile_phone'] = self.mobile
-        if self.email:
-            vals['work_email'] = self.email
+        vals['work_email'] = self.email or 'work@email.com'
 
         if vals:
             employee.write(vals)
