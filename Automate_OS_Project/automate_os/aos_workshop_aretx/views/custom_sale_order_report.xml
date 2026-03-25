@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Report Action -->
+    <record id="action_sale_order_with_header" model="ir.actions.report">
+        <field name="name">Custom Sale Order With Header</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aos_workshop_aretx.report_saleorder_withheader_report</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Report Template -->
+    <template id="report_saleorder_withheader_report">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+
+                <t t-foreach="docs" t-as="o">
+                    <t t-set="o" t-value="o.with_context(lang=lang)"/>
+
+                    <!-- HEADER -->
+                    <div class="row mt-1 mb-2" style="border-bottom: 1px solid #EEE; padding-bottom: 5px;">
+                        <!-- LEFT -->
+                        <div class="col-6 pe-3"
+                             style="line-height: 1.2; font-size: 12px; border-right: 1px solid #ddd;">
+                            <t t-if="o.partner_id">
+                                <div>
+                                    <strong>Name:</strong>
+                                    <span t-field="o.partner_id.name"/>
+                                </div>
+
+                                <t t-if="o.partner_id.street">
+                                    <div>
+                                        <strong>Address:</strong>
+                                        <t t-esc="o.partner_id.street"/>
+                                        <t t-if="o.partner_id.street2">,
+                                            <t t-esc="o.partner_id.street2"/>
+                                        </t>
+                                        ,
+                                        <t t-esc="o.partner_id.city"/>
+                                        <t t-if="o.partner_id.zip">-
+                                            <t t-esc="o.partner_id.zip"/>
+                                        </t>
+                                    </div>
+                                </t>
+
+                                <t t-if="'mobile' in o.partner_id._fields and o.partner_id.mobile">
+                                    <div>
+                                        <strong>Mobile:</strong>
+                                        <span t-field="o.partner_id.mobile"/>
+                                    </div>
+                                </t>
+                                <t t-elif="o.partner_id.phone">
+                                    <div>
+                                        <strong>Phone:</strong>
+                                        <span t-field="o.partner_id.phone"/>
+                                    </div>
+                                </t>
+
+                                <div t-if="o.partner_id.email">
+                                    <strong>Email:</strong>
+                                    <span t-field="o.partner_id.email"/>
+                                </div>
+
+                                <t t-if="o.partner_id.vat">
+                                    <div>
+                                        <strong>GSTIN:</strong>
+                                        <t t-esc="o.partner_id.vat"/>
+                                    </div>
+                                </t>
+                            </t>
+                        </div>
+
+                        <!-- RIGHT -->
+                        <div class="col-6 ps-3" style="line-height: 1.2; font-size: 12px;">
+                            <t t-if="o.x_vehicle_number_id">
+                                <div>
+                                    <strong>Vehicle No:</strong>
+                                    <t t-esc="o.x_vehicle_number_id.x_vehicle_number_id"/>
+                                </div>
+                                <div class="mb-0">
+                                    <strong>Model:</strong>
+                                    <t t-if="o.x_vehicle_number_id.x_brand_id">
+                                        <t t-esc="o.x_vehicle_number_id.x_brand_id.name"/>
+                                        -
+                                    </t>
+                                    <t t-if="o.x_vehicle_number_id.x_model_id">
+                                        <t t-esc="o.x_vehicle_number_id.x_model_id.name"/>
+                                        -
+                                    </t>
+                                    <t t-if="o.x_vehicle_number_id.x_color_id">
+                                        <t t-esc="o.x_vehicle_number_id.x_color_id.name"/>
+                                        -
+                                    </t>
+                                    <t t-if="o.x_vehicle_number_id.variant">
+                                        <t t-esc="o.x_vehicle_number_id.variant"/>
+                                        -
+                                    </t>
+                                    <t t-if="o.x_vehicle_number_id.year">
+                                        <t t-esc="o.x_vehicle_number_id.year"/>
+                                    </t>
+                                </div>
+                                <div class="mb-0" t-if="o.vehicle_kms">
+                                    <strong>KMs:</strong>
+                                    <t t-esc="o.vehicle_kms"/>
+                                </div>
+                                <div class="mb-0" t-if="o.x_vehicle_number_id.chassis_number">
+                                    <strong>Chassis:</strong>
+                                    <t t-esc="o.x_vehicle_number_id.chassis_number"/>
+                                </div>
+                                <div class="mb-0" t-if="o.x_vehicle_number_id.engine_number">
+                                    <strong>Engine:</strong>
+                                    <t t-esc="o.x_vehicle_number_id.engine_number"/>
+                                </div>
+                                <div class="mb-0" t-if="o.x_vehicle_number_id.fuel_type">
+                                    <strong>Fuel:</strong>
+                                    <t t-esc="o.x_vehicle_number_id.fuel_type"/>
+                                </div>
+                                <div class="mb-0" t-if="o.service_type">
+                                    <strong>Service Type:</strong>
+                                    <t t-esc="o.service_type"/>
+                                </div>
+                                <div class="mb-0" t-if="o.advisor_name.name">
+                                    <strong>Advisor:</strong>
+                                    <t t-esc="o.advisor_name.name"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- PAGE -->
+                    <div class="page">
+                        <h2>
+
+                        </h2>
+
+                        <!-- Job Card / Quotation Info -->
+                        <div class="row mt-4 mb-4" style="display:flex; align-items:flex-start;">
+
+                            <div class="col-4" style="padding-right:20px;">
+                                <span t-if="env.context.get('proforma')">
+                                    <strong>Pro-Forma Invoice #</strong>
+                                    <br/>
+                                </span>
+                                <span t-elif="o.state in ['draft','sent']">
+                                    <strong>Quotation #</strong>
+                                    <br/>
+                                </span>
+                                <span t-else="">
+                                    <strong>Job Card No:</strong>
+                                </span>
+                                <span t-field="o.name"/>
+                                <br/>
+                            </div>
+
+                            <div class="col-4" style="padding-right:20px;">
+                                <t t-if="o.client_order_ref">
+                                    <strong>Your Reference:</strong>
+                                    <span t-field="o.client_order_ref"/>
+                                    <br/>
+                                </t>
+                            </div>
+
+                            <div class="col-4">
+                                <t t-if="o.date_order">
+                                    <strong t-if="o.state in ['draft','sent']">Quotation Date:</strong>
+                                    <strong t-else="">Job Card Date:</strong>
+                                    <span t-field="o.date_order" t-options='{"widget": "date"}'/>
+                                    <br/>
+                                </t>
+
+                                <t t-if="o.validity_date and o.state in ['draft','sent']">
+                                    <strong>Expiration:</strong>
+                                    <span t-field="o.validity_date"/>
+                                    <br/>
+                                </t>
+                            </div>
+
+                        </div>
+
+
+                        <t t-set="lines_to_report" t-value="o._get_order_lines_to_report()"/>
+                        <t t-set="display_discount" t-value="any(l.discount for l in lines_to_report)"/>
+                        <t t-set="display_technician" t-value="any(l.technician_id_l for l in lines_to_report)"/>
+                        <div class="oe_structure"></div>
+
+                        <table class="table table-sm o_main_table table-borderless mt-4">
+                            <thead style="display: table-row-group">
+                                <tr>
+                                    <th name="th_description" class="text-start">Description</th>
+
+                                    <t t-if="display_technician">
+                                        <th name="th_technician" class="text-start">Technician</th>
+                                    </t>
+
+                                    <th name="th_quantity" class="text-end">Quantity</th>
+                                    <th name="th_priceunit" class="text-end">Unit Price</th>
+                                    <th name="th_discount" t-if="display_discount" class="text-end">
+                                        <span>Disc.%</span>
+                                    </th>
+                                    <th name="th_taxes" class="text-end">Taxes</th>
+                                    <th name="th_subtotal" class="text-end">
+                                        <span>Amount</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="sale_tbody">
+
+                                <t t-set="current_subtotal" t-value="0"/>
+
+                                <t t-foreach="lines_to_report" t-as="line">
+
+                                    <t t-set="current_subtotal" t-value="current_subtotal + line.price_subtotal"/>
+
+                                    <tr t-att-class="'fw-bold o_line_section' if line.display_type == 'line_section' else 'fst-italic o_line_note' if line.display_type == 'line_note' else ''">
+
+                                        <t t-if="not line.display_type">
+                                            <td name="td_name">
+                                                <span t-field="line.name"/>
+                                            </td>
+
+                                            <t t-if="display_technician">
+                                                <td name="td_technician">
+                                                    <span t-field="line.technician_id_l"/>
+                                                </td>
+                                            </t>
+
+                                            <td name="td_quantity" class="text-end">
+                                                <span t-field="line.product_uom_qty"/>
+                                                <span t-field="line.product_uom_id"/>
+                                            </td>
+                                            <td name="td_priceunit" class="text-end">
+                                                <span t-field="line.price_unit"/>
+                                            </td>
+                                            <td t-if="display_discount" class="text-end">
+                                                <span t-field="line.discount"/>
+                                            </td>
+                                            <t t-set="taxes"
+                                               t-value="', '.join([(tax.invoice_label or tax.name) for tax in line.tax_ids])"/>
+                                            <td name="td_taxes"
+                                                t-attf-class="text-end {{ 'text-nowrap' if len(taxes) &lt; 10 else '' }}">
+                                                <span t-out="taxes">Tax 15%</span>
+                                            </td>
+                                            <td t-if="not line.is_downpayment" name="td_subtotal"
+                                                class="text-end o_price_total">
+                                                <span t-field="line.price_subtotal"/>
+                                            </td>
+                                        </t>
+
+                                        <t t-elif="line.display_type == 'line_section'">
+                                            <td name="td_section_line" colspan="99">
+                                                <span t-field="line.name"/>
+                                            </td>
+                                            <t t-set="current_section" t-value="line"/>
+                                            <t t-set="current_subtotal" t-value="0"/>
+                                        </t>
+
+                                        <t t-elif="line.display_type == 'line_note'">
+                                            <td name="td_note_line" colspan="99">
+                                                <span t-field="line.name"/>
+                                            </td>
+                                        </t>
+                                    </tr>
+
+                                    <t t-if="current_section and (line_last or lines_to_report[line_index+1].display_type == 'line_section') and not line.is_downpayment">
+                                        <tr class="is-subtotal text-end">
+                                            <td name="td_section_subtotal" colspan="99">
+                                                <strong class="mr16">Subtotal</strong>
+                                                <span
+                                                        t-out="current_subtotal"
+                                                        t-options='{"widget": "monetary", "display_currency": o.currency_id}'
+                                                />
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <div class="clearfix" name="so_total_summary">
+                            <div id="total" class="row" name="total">
+                                <div t-attf-class="#{'col-6' if report_type != 'html' else 'col-sm-7 col-md-6'} ms-auto">
+                                    <table class="table table-sm table-borderless">
+                                        <!-- Tax totals -->
+                                        <t t-set="doc" t-value="o"/>
+                                        <t t-set="tax_totals" t-value="o.tax_totals"/>
+                                        <t t-set="currency" t-value="o.currency_id"/>
+                                        <t t-call="sale.document_tax_totals"/>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="oe_structure"></div>
+
+                        <div t-if="not o.signature" class="oe_structure"></div>
+                        <div t-else="" class="mt-4 ml64 mr4" name="signature">
+                            <div class="offset-8">
+                                <strong>Signature</strong>
+                            </div>
+                            <div class="offset-8">
+                                <img t-att-src="image_data_uri(o.signature)" style="max-height: 4cm; max-width: 8cm;"/>
+                            </div>
+                            <div class="offset-8 text-center">
+                                <span t-field="o.signed_by">Oscar Morgan</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span t-field="o.note"
+                                  t-attf-style="#{'text-align:justify;text-justify:inter-word;' if o.company_id.terms_type != 'html' else ''}"
+                                  name="order_note"/>
+                            <p t-if="not is_html_empty(o.payment_term_id.note)">
+                                <span t-field="o.payment_term_id.note">The payment should also be transmitted with
+                                    love
+                                </span>
+                            </p>
+                            <div class="oe_structure"/>
+                            <p t-if="o.fiscal_position_id and not is_html_empty(o.fiscal_position_id.sudo().note)"
+                               id="fiscal_position_remark">
+                                <strong>Fiscal Position Remark:</strong>
+                                <span t-field="o.fiscal_position_id.sudo().note">No further requirements for this
+                                    payment
+                                </span>
+                            </p>
+                        </div>
+                        <div class="oe_structure"/>
+                    </div>
+                </t>
+
+            </t>
+        </t>
+    </template>
+
+
+<!--    Job card-->
+        <template id="report_saleorder_jobcard">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="o">
+                    <div class="page">
+                        <h2 style="text-align:left;">Job Card  <span t-field="o.name"/></h2>
+                        <br/>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Customer:</strong>
+                                <span t-field="o.partner_id.name"/>
+                                <br/>
+                                <strong>Order Date:</strong>
+                                <span t-field="o.date_order"/>
+                                <br/>
+                                <strong>Salesperson:</strong>
+                                <span t-field="o.user_id.name"/>
+                                <br/>
+                                <strong>Advisor:</strong>
+                                <span t-field="o.advisor_name.name"/>
+
+                            </div>
+                            <div class="col-6">
+                                <strong>Vehicle Brand:</strong>
+                                <span t-field="o.x_vehicle_number_id.x_brand_id.name"/>
+                                <br/>
+                                 <strong>Vehicle Model:</strong>
+                                <span t-field="o.x_vehicle_number_id.x_model_id.name"/>
+                                <br/>
+                                  <strong>Vehicle Color:</strong>
+                                <span t-field="o.x_vehicle_number_id.x_color_id.name"/>
+                                <br/>
+                                <strong>Vehicle number:</strong>
+                                <span t-field="o.x_vehicle_number_id"/>
+                                <br/>
+                                <strong>Vehicle KMS:</strong>
+                                <span t-field="o.vehicle_kms"/>
+                                <br/>
+
+
+                            </div>
+                        </div>
+
+                        <br/>
+                        <h3>Products / Services</h3>
+                        <table class="table table-sm table-bordered" style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background-color:#eee;">
+                                    <th>Product</th>
+                                    <th>Technician</th>
+                                    <th>Description</th>
+                                    <th>Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.order_line" t-as="line">
+                                    <td>
+                                        <span t-field="line.product_id.display_name"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.technician_id_l.name"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.name"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.product_uom_qty"/>
+                                    </td>
+
+                                    <br/>
+
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_sale_order_jobcard" model="ir.actions.report">
+        <field name="name">Print Job Card</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aos_workshop_aretx.report_saleorder_jobcard</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="view_order_form_inherit_technician" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.technician</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']//field[@name='product_template_id']" position="after">
+                <field name="technician_id_l" optional="hide" options="{'no_create': True, 'no_create_edit': True}"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

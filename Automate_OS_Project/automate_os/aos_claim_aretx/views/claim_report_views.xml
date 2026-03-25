@@ -1,0 +1,226 @@
+<odoo>
+    <template id="report_claim_report_template">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="o">
+                    <div class="page">
+                        <h2 style="text-align:left;">
+                            <span t-esc="o.name"/>
+                        </h2>
+                        <br/>
+                        <h2 style="text-align:center;">Claim Report</h2>
+                        <br/>
+                        <div>
+                            <div>
+                                <strong>Customer:</strong>
+                                <span t-field="o.partner_id.name"/>
+                                <br/>
+                                <strong>Address:</strong>
+                                <span t-field="o.partner_id.street"/>
+                                <br/>
+                                <span t-field="o.partner_id.street2"/>
+                                <br/>
+                                <span t-field="o.partner_id.city"/>
+                                <br/>
+                                <strong>Mobile No:</strong>
+                                <span t-field="o.partner_id.mobile"/>
+
+                            </div>
+                            <div>
+                                <strong>Date:</strong>
+                                <span t-esc="o.date"/>
+                            </div>
+                        </div>
+                        <!--                        <div>-->
+                        <!--                            <strong>Customer:</strong>-->
+                        <!--                            <span t-field="o.partner_id.name"/>-->
+                        <!--                            <br/>-->
+                        <!--                            <strong>Address:</strong>-->
+                        <!--                            <span t-field="o.partner_id.street"/>-->
+                        <!--                            <br/>-->
+                        <!--                            <span t-field="o.partner_id.street2"/>-->
+                        <!--                            <br/>-->
+                        <!--                            <span t-field="o.partner_id.city"/>-->
+                        <!--                            <span t-field="o.partner_id.zip"/>-->
+                        <!--                            <br/>-->
+                        <!--                            <span t-field="o.partner_id.state_id.name"/>-->
+                        <!--                            <br/>-->
+                        <!--                            <span t-field="o.partner_id.country_id.name"/>-->
+                        <!--                            <br/>-->
+                        <!--                            <strong>Date:</strong>-->
+                        <!--                            <span t-esc="o.date"/>-->
+                        <!--                        </div>-->
+                        <br/>
+                        <table class="table table-sm o_main_table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Description</th>
+                                    <th>Quantity</th>
+                                    <th>Product Status</th>
+                                    <th>Claim Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="o.line_ids" t-as="line">
+                                    <tr>
+                                        <td>
+                                            <span t-esc="line.product_id.display_name"/>
+                                        </td>
+                                        <td>
+                                            <span t-esc="line.description or ''"/>
+                                        </td>
+                                        <td>
+                                            <span t-esc="line.qty"/>
+                                        </td>
+                                        <td>
+                                            <t t-esc="dict(line._fields['product_state'].selection).get(line.product_state)"/>
+                                        </td>
+
+                                        <!-- STATE LABEL -->
+                                        <td>
+                                            <t t-esc="dict(o._fields['state'].selection).get(o.state)"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <p class="mt-3">
+                            <strong>Note:</strong>
+                            <span t-esc="o.note or ''"/>
+                        </p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- Tree View for Claim Report Lines (separate definition) -->
+    <record id="view_claim_report_line_tree" model="ir.ui.view">
+        <field name="name">claim.report.line.list</field>
+        <field name="model">claim.report.line</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="product_id" required="1"/>
+                <field name="description"/>
+                <field name="qty"/>
+                <field name="product_state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_claim_report_form" model="ir.ui.view">
+        <field name="name">claim.report.form</field>
+        <field name="model">claim.report</field>
+        <field name="arch" type="xml">
+            <form string="Claim Report">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="pending,register,sent,pass,fail"/>
+                    <button
+                            name="action_done"
+                            string="Claim Pass"
+                            type="object"
+                            class="btn-success"
+                            invisible="state in ['pass', 'fail','pending','register']"
+                    />
+                    <button
+                            name="action_cancel"
+                            string="Claim Failed"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state in ['pass', 'fail','pending','register']"
+                    />
+                    <button
+                            name="action_register"
+                            string="Register"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state in ['pass', 'fail','sent','register']"
+                    />
+                    <button
+                            name="action_sent"
+                            string="Sent For Claim"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state in ['pending','pass', 'fail','sent']"
+                    />
+
+
+                </header>
+                <sheet>
+                    <!-- 👇 Add this field to make dynamic modifiers work -->
+                    <field name="state" invisible="1"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="state in ['pass', 'fail']"/>
+                            <field name="date" readonly="state in ['pass', 'fail']"/>
+                        </group>
+                        <group>
+                            <field name="note"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Claim Lines">
+                            <field name="line_ids"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View -->
+    <record id="view_claim_report_tree" model="ir.ui.view">
+        <field name="name">claim.report.list</field>
+        <field name="model">claim.report</field>
+        <field name="arch" type="xml">
+            <list string="Marks">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="date"/>
+                <field name="state"/>
+                <field name="note"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_claim_report" model="ir.actions.act_window">
+        <field name="name">Claim Reports</field>
+        <field name="res_model">claim.report</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Root menu for Claim Management -->
+    <menuitem id="menu_claim_management_root"
+              name="Claim Management"
+              sequence="80"/>
+
+    <!-- Claim Reports main menu under Claim Management -->
+    <menuitem id="menu_claim_report_root"
+              name="Claim Reports"
+              parent="menu_claim_management_root"
+              sequence="90"/>
+
+    <!-- Claim Reports action menu -->
+    <menuitem id="menu_claim_report"
+              name="Claim Reports"
+              parent="menu_claim_report_root"
+              action="action_claim_report"
+              sequence="10"/>
+
+    <menuitem id="menu_email_management_root1" name="Email Management" sequence="10" web_icon="base,static/description/icon.png"/>
+    <menuitem id="menu_all_mails" name="Email" parent="menu_email_management_root1" action="mail.action_view_mail_mail" sequence="1"/>
+    <menuitem id="menu_incoming_mail_servers" name="Incoming Servers" parent="menu_email_management_root1" action="mail.action_email_server_tree" sequence="2"/>
+    <menuitem id="menu_email_templates" name="Email Templates" parent="menu_email_management_root1" action="mail.action_email_template_tree_all" sequence="3"/>
+    <menuitem id="menu_outgoing_mail_servers" name="Outgoing Servers" parent="menu_email_management_root1" action="base.action_ir_mail_server_list" sequence="4"/>
+
+</odoo>

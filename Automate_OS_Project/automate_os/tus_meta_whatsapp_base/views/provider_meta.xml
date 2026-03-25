@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="graph_provider_inherit_form_view" model="ir.ui.view">
+        <field name="name">provider.inherit.form</field>
+        <field name="model">provider</field>
+        <field name="inherit_id" ref="tus_meta_whatsapp_base.provider_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr='//group[@name="provider"]' position='inside'>
+                <field name="graph_api_url" invisible="provider != 'graph_api'"/>
+                <field name="graph_api_instance_id" invisible="provider != 'graph_api'"/>
+                <field name="graph_api_business_id" invisible="provider != 'graph_api'"/>
+                <field name="graph_api_app_id" invisible="provider != 'graph_api'"/>
+                <field name="graph_api_app_secret" invisible="provider != 'graph_api'" password="True"/>
+                <field name="graph_api_token" invisible="provider != 'graph_api'" password="True"/>
+                <field name="access_token_expiry_date"
+                       invisible="provider != 'graph_api' or not access_token_expiry_date" readonly="1"
+                       password="True"/>
+                <field name="graph_api_authentication" invisible="provider != 'graph_api'"/>
+                <field name="graph_api_authenticated" invisible="provider != 'graph_api'"/>
+                <field name="user_id" invisible="provider != 'graph_api'" domain="[('company_ids', 'in', company_id)]"/>
+            </xpath>
+            <xpath expr='//group[@name="provider"]' position='after'>
+                <h2>
+                    <field name="call_back_url" invisible="is_token_generated != True" readonly="1" force_save="1"/>
+                    <field name="is_token_generated" invisible="1"/>
+                </h2>
+                <div class="row" style="float:right;" invisible="provider != 'graph_api'">
+                    <div class="col-12">
+                        <button name="extend_meta_temporary_access_token"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-refresh"
+                                invisible="not graph_api_token">
+                            Extend Meta Temporary Access Token
+                        </button>
+                        <button name="get_whatsapp_template"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-refresh">
+                            Get Whatsapp Templates
+                        </button>
+                        <button name="get_phone_number_by_id"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-refresh">
+                            Get Phone Number
+                        </button>
+                        <button name="get_whatsapp_business_details"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-refresh">
+                            Get Business Details
+                        </button>
+                        <button name="reload_with_get_status"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-refresh">
+                            Reload / Get Status
+                        </button>
+                    </div>
+                </div>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Coexisting WhatsApp Configuration" name="coexisting_whatsapp">
+                    <group>
+                        <field name="contact_sync_request_id" readonly="1"/>
+                        <field name="chat_sync_request_id" readonly="1"/>
+                    </group>
+                    <div class="row" style="float:right;" invisible="provider != 'graph_api'">
+                        <div class="col-12">
+                            <button name="contact_synchronization" type="object"
+                                    invisible="graph_api_instance_id == False"
+                                    class="oe_stat_button"
+                                    icon="fa-refresh"
+                                    confirm="Are you sure, You want to sync whatsapp contacts in odoo?"
+                                    groups="tus_meta_whatsapp_base.whatsapp_group_manager">Contact Synchronization
+                            </button>
+
+                            <button name="chat_synchronization" type="object"
+                                    invisible="graph_api_instance_id == False"
+                                    class="oe_stat_button"
+                                    icon="fa-refresh"
+                                    confirm="Are you sure, You want to sync whatsapp chats in odoo?"
+                                    groups="tus_meta_whatsapp_base.whatsapp_group_manager">Chat Synchronization
+                            </button>
+                        </div>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_aos_roi_wizard,aos.roi.wizard,model_aos_roi_wizard,base.group_user,1,1,1,1
+access_aos_roi_file,aos.roi.file,model_aos_roi_file,base.group_user,1,1,1,1
+

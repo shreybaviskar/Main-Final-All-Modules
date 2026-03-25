@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="customer_invoice_stock_move_view" model="ir.ui.view">
+            <field name="name">Move Name</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+                <!--                <xpath expr="//header" position="inside">-->
+                <!--                    <button name="action_stock_move" string="Transfer" type="object" class="oe_highlight"-->
+                <!--                            invisible="state == 'draft'"/>-->
+                <!--                </xpath>-->
+                <!--                <xpath expr="//header" position="inside">-->
+                <!--                    <button name="action_stock_move" string="Transfer" type="object" class="oe_highlight"/>-->
+                <!--                </xpath>-->
+
+                <xpath expr="//field[@name='invoice_date']" position="after">
+
+                    <field name="picking_type_id" readonly="1" invisible="1"/>
+                    <field name="invoice_picking_id" invisible="1"/>
+                </xpath>
+                <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                    <button type="object"
+                            name="action_view_picking"
+                            class="oe_stat_button"
+                            invisible="state == 'draft' or picking_count &lt; 1 or move_type not in ('in_invoice','in_refund')"
+                            icon="fa-truck">
+                        <field name="picking_count" string="Receipt" widget="statinfo"/>
+                    </button>
+                    <button type="object"
+                            name="action_view_picking"
+                            class="oe_stat_button"
+                            invisible="state == 'draft' or picking_count &lt; 1 or move_type not in ('out_invoice','out_refund')"
+                            icon="fa-truck">
+                        <field name="picking_count" string="Delivery" widget="statinfo"/>
+                    </button>
+                </xpath>
+            </field>
+        </record>
+<!--        <record id="view_move_form_inherit_warranty" model="ir.ui.view">-->
+<!--            <field name="name">account.move.form.inherit.warranty</field>-->
+<!--            <field name="model">account.move</field>-->
+<!--            <field name="inherit_id" ref="account.view_move_form"/>-->
+<!--            <field name="arch" type="xml">-->
+<!--                <xpath expr="//field[@name='invoice_date']" position="after">-->
+<!--                    &lt;!&ndash;-->
+<!--                    <field name="warranty_number" placeholder="SSDSDSD"-->
+<!--                           invisible="move_type not in ('out_invoice','out_refund')"/>-->
+<!--                     &ndash;&gt;-->
+<!--                </xpath>-->
+<!--            </field>-->
+<!--        </record>-->
+
+        <record id="view_move_tree_inherit_warranty" model="ir.ui.view">
+            <field name="name">account.move.tree.inherit.warranty</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_invoice_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='invoice_date']" position="after">
+                    <!--<field name="warranty_number" optional="hide"/>-->
+
+                </xpath>
+            </field>
+        </record>
+
+
+
+
+    </data>
+</odoo>

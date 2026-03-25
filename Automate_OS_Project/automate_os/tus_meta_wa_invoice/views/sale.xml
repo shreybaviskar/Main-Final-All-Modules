@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<odoo>
+    <record id="view_order_form_inherit_wa_sale" model="ir.ui.view">
+        <field name="name">sale.order.form.wa.inherit</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add After "Send by Email" button OR "Preview" button -->
+            <xpath expr="//button[@name='action_quotation_send']" position="after">
+
+                <!-- For QUOTATION (draft state) -->
+                <button
+                    name="%(tus_meta_whatsapp_base.action_wa_compose_message_wizard)d"
+                    type="action"
+                    string="Send Quotation by WhatsApp"
+                    context="{'report': 'sale.report_saleorder'}"
+                    invisible="state != 'draft'"
+                    groups="tus_meta_wa_invoice.whatsapp_group_invoice_user"
+                />
+
+                <!-- For ORDER (sent/confirmed state) -->
+                <button
+                    name="%(tus_meta_whatsapp_base.action_wa_compose_message_wizard)d"
+                    type="action"
+                    string="Send Order by WhatsApp"
+                    context="{'report': 'sale.report_saleorder'}"
+                    invisible="state == 'draft'"
+                    groups="tus_meta_wa_invoice.whatsapp_group_invoice_user"
+                />
+
+            </xpath>
+        </field>
+    </record>
+</odoo>

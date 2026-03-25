@@ -1,0 +1,17 @@
+<odoo>
+    <data>
+
+        <record id="whatsapp_group_invoice_user" model="res.groups">
+            <field name="name">Allow to send message from Invoice</field>
+            <field name="implied_ids"
+                   eval="[(4,ref('tus_meta_whatsapp_base.whatsapp_group_user'))]"/>
+        </record>
+
+<!--        &lt;!&ndash; Add group to default user &ndash;&gt;-->
+<!--        <record id="base.default_user" model="res.users" forcecreate="False">-->
+<!--            <field name="groups_id"-->
+<!--                   eval="[(4,ref('tus_meta_wa_invoice.whatsapp_group_invoice_user'))]"/>-->
+<!--        </record>-->
+
+    </data>
+</odoo>

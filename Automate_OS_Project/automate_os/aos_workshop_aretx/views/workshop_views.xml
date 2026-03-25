@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_aos_vehicle_aretx_form_inherit" model="ir.ui.view">
+        <field name="name">vehicle.master.form.inherit</field>
+        <field name="model">vehicle.master.model</field>
+        <field name="inherit_id" ref="aos_vehicle_aretx.master_form_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='x_avg_km']" position="after">
+                <field name="variant"/>
+                <field name="chassis_number"/>
+                <field name="engine_number"/>
+                <field name="fuel_type"/>
+                <field name="year"/>
+            </xpath>
+        </field>
+    </record>
+
+
+    <record id="inherited_invoice_view" model="ir.ui.view">
+        <field name="name">account.move.inherited</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group/group[@id='header_left_group']/field[@name='partner_shipping_id']"
+                   position="after">
+                <field name="service_type"
+                       invisible="move_type not in ('out_invoice','out_refund')"/>
+                <field name="advisor_name"
+                       invisible="move_type not in ('out_invoice','out_refund')"
+                       options="{'no_create': True, 'no_create_edit': True}"/>
+
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="inherited_invoice_list_view" model="ir.ui.view">
+        <field name="name">account.move.inherited</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_out_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='warranty_number']" position="after">
+                <field name="service_type" optional="hide"/>
+                <field name="advisor_name" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!--    View in sales for contact-->
+    <record id="view_form_inherited_partner_vehicle_sale" model="ir.ui.view">
+        <field name="name">res.partner.vehicle.details.view.sale</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='view_in_invoice']" position="after">
+                <button name="view_in_sale"
+                        type="object"
+                        string="View Sale Orders"/>
+            </xpath>
+        </field>
+    </record>
+
+
+    <record id="sale_order_form_inherit_service_fields" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.service.fields</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="service_type"/>
+                <field name="advisor_name"
+                       options="{'no_create': True, 'no_create_edit': True}"/>
+            </xpath>
+
+            <xpath expr="//field[@name='validity_date']" position="before">
+                <field name="entry_date"/>
+                <field name="exit_date"/>
+
+            </xpath>
+
+
+        </field>
+    </record>
+
+    <record id="sale_order_list_inherit_service_fields" model="ir.ui.view">
+        <field name="name">sale.order.list.inherit.service.fields</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree_with_onboarding"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="service_type" optional="hide"/>
+                <field name="advisor_name" optional="hide"/>
+                <field name="entry_date" optional="hide"/>
+                <field name="exit_date" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>

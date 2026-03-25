@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_form_inherited_partner" model="ir.ui.view">
+        <field name="name">res.partner.inherited_colum</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='internal_notes']" position="after">
+                <page string="Vehicle Details">
+                    <field name="x_vehicle_number_ids">
+                        <list editable="bottom">
+                            <field name="x_brand_id"/>
+                            <field name="x_model_id"/>
+                            <field name="x_vehicle_number_id"/>
+                            <field name="x_color_id"/>
+                            <button name="view_in_invoice" type="object" string="View Invoices"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="customer_followup_search_view" model="ir.ui.view">
+        <field name="name">res.partner.search.vehicle</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="vehicle_numbers"
+                       string="Vehicle Number"
+                       filter_domain="[('vehicle_numbers', 'ilike', self)]"/>
+            </xpath>
+            <xpath expr="//search" position="inside">
+                <filter string="Has Vehicle"
+                        name="has_vehicle"
+                        domain="[('vehicle_numbers', '!=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

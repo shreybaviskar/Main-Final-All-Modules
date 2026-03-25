@@ -1,0 +1,44 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Below code is for Cron job for Chat API -->
+<!--        <record id="ir_cron_data_get_whatsapp_template" model="ir.cron">-->
+<!--            <field name="name">Get Whatsapp Template</field>-->
+<!--            <field name="model_id" ref="tus_meta_whatsapp_base.model_wa_template"/>-->
+<!--            <field name="type">ir.actions.server</field>-->
+<!--            <field name="state">code</field>-->
+<!--            <field name="active">False</field>-->
+<!--            <field name="code">model.get_whatsapp_temaplate()</field>-->
+<!--            <field name="interval_number">1</field>-->
+<!--            <field name="interval_type">days</field>-->
+<!--            <field name="numbercall">-1</field>-->
+<!--        </record>-->
+
+        <record id="ir_cron_scheduler_template_status" model="ir.cron">
+            <field name="name">Get Template States</field>
+            <field name="model_id" ref="tus_meta_whatsapp_base.model_wa_template"/>
+            <field name="state">code</field>
+            <field name="code">model.get_whatsapp_template_status()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+        </record>
+
+        <record id="ir_cron_scheduler_update_channel_type" model="ir.cron">
+            <field name="name">Update WhatsApp Channel Type</field>
+            <field name="model_id" ref="mail.model_discuss_channel"/>
+            <field name="state">code</field>
+            <field name="code">model.update_whatsapp_channel_type()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="active">False</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+        </record>
+
+        <record id="provider_1" model="provider">
+            <field name="name">Meta 1</field>
+            <field name="provider">graph_api</field>
+            <field name="graph_api_authentication">bearer_token</field>
+            <field name="user_id" ref="base.user_admin"/>
+        </record>
+    </data>
+</odoo>

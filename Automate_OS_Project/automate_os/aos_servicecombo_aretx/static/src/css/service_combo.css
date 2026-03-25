@@ -1,0 +1,7 @@
+.service_combo_tree_disable_pointer {
+    pointer-events:none;
+}
+
+.service_combo_tree_disable_pointer_table .table-responsive table tbody{
+    pointer-events:none;
+}
