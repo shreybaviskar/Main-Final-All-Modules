@@ -281,11 +281,11 @@ class WAComposer(models.TransientModel):
 
             if active_model == 'sale.order':
                 # ✅ Custom Sale Order Report
-                report_xmlid = 'aretx_workshop.action_sale_order_with_header'
+                report_xmlid = 'aos_workshop_aretx.action_sale_order_with_header'
 
             elif active_model == 'account.move':
                 # ✅ Custom Invoice Report
-                report_xmlid = 'aretx_workshop.action_report_custom_with_invoice'
+                report_xmlid = 'aos_workshop_aretx.action_report_custom_with_invoice'
 
             elif self.env.context.get('report'):
                 report_xmlid = self.env.context.get('report')
