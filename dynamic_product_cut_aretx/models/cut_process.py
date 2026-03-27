@@ -53,7 +53,7 @@ class DynamicProductCut(models.Model):
             width = rec.wood_template_id.width
 
             # -----------------------------
-            # STEP 1: REQUIREMENTS
+            # STEP 1: AGGREGATE REQUIREMENTS
             # -----------------------------
             length_counter = {}
             for line in rec.line_ids:
@@ -101,25 +101,27 @@ class DynamicProductCut(models.Model):
             if not remaining_lengths:
                 return
 
-            remaining_total = sum(remaining_lengths)
-
-            # 🔥 CRITICAL FIX: EXCLUDE SHORTAGE LENGTHS
+            # Lengths that are in shortage — never use as source logs
             shortage_lengths = set(remaining_lengths)
 
             # -----------------------------
-            # STEP 4: FIND SINGLE BEST LOG
+            # STEP 4: BUILD LOG POOL
+            # Rules per length in the same wood family:
+            #   • In shortage                → exclude entirely (we need those pieces, can't cut them)
+            #   • In order but fully stocked → reserve the ordered qty, pool only the SURPLUS units
+            #   • Not in order at all        → pool all available units
+            #
+            # This ensures we never consume stock committed to an order line,
+            # while still allowing surplus units of ordered lengths to be
+            # used as source logs for other cuts.
             # -----------------------------
             candidates = ProductTemplate.search([
                 ('default_code', 'like', f'{prefix}-%'),
-                ('length', '>=', remaining_total),
-                ('length', 'not in', list(shortage_lengths))
+                ('length', 'not in', list(shortage_lengths)),
             ])
 
-            best_product = None
-            best_length = None
-
+            log_pool = []
             for product in candidates:
-
                 quant = StockQuant.search([
                     ('product_id', '=', product.product_variant_id.id),
                     ('location_id', '=', stock_location.id),
@@ -129,114 +131,178 @@ class DynamicProductCut(models.Model):
                 if not quant:
                     continue
 
-                if not best_length or product.length < best_length:
-                    best_product = product
-                    best_length = product.length
+                available = int(quant.quantity)
 
-            if not best_product:
-                raise UserError(
-                    f"No single log available to fulfill total requirement ({remaining_total}m)."
-                )
+                # Reserve units already committed to this order length
+                # (shortage lengths excluded above, so this only applies to
+                #  fully-stocked ordered lengths like 100m ordered x2, stock x95)
+                reserved = int(length_counter.get(product.length, 0))
 
-            parent_variant = best_product.product_variant_id
+                # Only pool the surplus beyond what the order already covers
+                usable = available - reserved
+                if usable <= 0:
+                    continue
 
-            parent_quant = StockQuant.search([
-                ('product_id', '=', parent_variant.id),
-                ('location_id', '=', stock_location.id)
-            ], limit=1)
-
-            if not parent_quant or parent_quant.quantity <= 0:
-                raise UserError("Selected log is out of stock.")
-
-            # -----------------------------
-            # STEP 5: DEDUCT ONE LOG
-            # -----------------------------
-            parent_quant.inventory_quantity = parent_quant.quantity - 1
-            parent_quant.action_apply_inventory()
-
-            remaining_piece = best_length - remaining_total
-
-            # -----------------------------
-            # STEP 6: CREATE CUT PIECES
-            # -----------------------------
-            for length in remaining_lengths:
-
-                child_code = f"{prefix}-{int(length)}"
-
-                product = ProductTemplate.search([
-                    ('default_code', '=', child_code)
-                ], limit=1)
-
-                if not product:
-                    product = ProductTemplate.create({
-                        'name': f"{rec.wood_template_id.name} {length}m",
-                        'default_code': child_code,
-                        'width': width,
-                        'length': length,
-                        'uom_id': rec.wood_template_id.uom_id.id,
-                        'is_storable': True,
+                for _ in range(usable):
+                    log_pool.append({
+                        'product': product,
+                        'length': product.length,
+                        'used': False,
                     })
 
-                variant = product.product_variant_id
+            # Sort pool: shortest logs first → prefer smaller logs to minimise waste
+            log_pool.sort(key=lambda x: x['length'])
 
-                quant = StockQuant.search([
-                    ('product_id', '=', variant.id),
+            # -----------------------------
+            # STEP 5: FIRST FIT DECREASING (FFD) BIN PACKING
+            # Process pieces largest-first so bigger cuts get placed first.
+            # Try to fill already-opened logs before opening a new one.
+            # -----------------------------
+            bins = []
+            # bin structure: {
+            #   'log_entry': pool entry,
+            #   'product': product.template,
+            #   'log_length': float,
+            #   'remaining': float,
+            #   'pieces': [float, ...]
+            # }
+
+            for piece in sorted(remaining_lengths, reverse=True):
+
+                placed = False
+
+                # Try fitting into an already-open bin (best use of opened logs)
+                for b in bins:
+                    if b['remaining'] >= piece:
+                        b['pieces'].append(piece)
+                        b['remaining'] -= piece
+                        placed = True
+                        break
+
+                if not placed:
+                    # Open the smallest unused log that can fit this piece
+                    for log_entry in log_pool:
+                        if not log_entry['used'] and log_entry['length'] >= piece:
+                            log_entry['used'] = True
+                            bins.append({
+                                'log_entry': log_entry,
+                                'product': log_entry['product'],
+                                'log_length': log_entry['length'],
+                                'remaining': log_entry['length'] - piece,
+                                'pieces': [piece],
+                            })
+                            placed = True
+                            break
+
+                if not placed:
+                    raise UserError(
+                        f"No log available to cut a piece of {piece}m. "
+                        f"Please ensure a log longer than {piece}m is in stock."
+                    )
+
+            # -----------------------------
+            # STEP 6: PROCESS EACH BIN
+            # For every log used: deduct stock, create cut pieces,
+            # put back the leftover piece.
+            # -----------------------------
+            for b in bins:
+
+                source_product = b['product']
+                parent_variant = source_product.product_variant_id
+
+                # --- Deduct 1 unit from source log ---
+                parent_quant = StockQuant.search([
+                    ('product_id', '=', parent_variant.id),
                     ('location_id', '=', stock_location.id)
                 ], limit=1)
 
-                if quant:
-                    quant.inventory_quantity = quant.quantity + 1
-                else:
-                    quant = StockQuant.create({
+                if not parent_quant or parent_quant.quantity <= 0:
+                    raise UserError(
+                        f"Log '{source_product.name}' ran out of stock during processing."
+                    )
+
+                parent_quant.inventory_quantity = parent_quant.quantity - 1
+                parent_quant.action_apply_inventory()
+
+                # --- Create child cut pieces ---
+                for length in b['pieces']:
+
+                    child_code = f"{prefix}-{int(length)}"
+
+                    product = ProductTemplate.search([
+                        ('default_code', '=', child_code)
+                    ], limit=1)
+
+                    if not product:
+                        product = ProductTemplate.create({
+                            'name': f"{rec.wood_template_id.name} {length}m",
+                            'default_code': child_code,
+                            'width': width,
+                            'length': length,
+                            'uom_id': rec.wood_template_id.uom_id.id,
+                            'is_storable': True,
+                        })
+
+                    variant = product.product_variant_id
+
+                    quant = StockQuant.search([
+                        ('product_id', '=', variant.id),
+                        ('location_id', '=', stock_location.id)
+                    ], limit=1)
+
+                    if quant:
+                        quant.inventory_quantity = quant.quantity + 1
+                    else:
+                        quant = StockQuant.create({
+                            'product_id': variant.id,
+                            'location_id': stock_location.id,
+                            'inventory_quantity': 1,
+                        })
+
+                    quant.action_apply_inventory()
+
+                    rec.cut_result_ids.create({
+                        'cut_id': rec.id,
                         'product_id': variant.id,
-                        'location_id': stock_location.id,
-                        'inventory_quantity': 1,
+                        'quantity': 1,
+                        'source_product_id': parent_variant.id,
                     })
 
-                quant.action_apply_inventory()
+                # --- Handle leftover piece from this log ---
+                remaining_piece = b['remaining']
 
-                rec.cut_result_ids.create({
-                    'cut_id': rec.id,
-                    'product_id': variant.id,
-                    'quantity': 1,
-                    'source_product_id': parent_variant.id
-                })
+                if remaining_piece > 0:
 
-            # -----------------------------
-            # STEP 7: REMAINING PIECE
-            # -----------------------------
-            if remaining_piece > 0:
+                    remain_code = f"{prefix}-{int(remaining_piece)}"
 
-                remain_code = f"{prefix}-{int(remaining_piece)}"
+                    remain_product = ProductTemplate.search([
+                        ('default_code', '=', remain_code)
+                    ], limit=1)
 
-                remain_product = ProductTemplate.search([
-                    ('default_code', '=', remain_code)
-                ], limit=1)
+                    if not remain_product:
+                        remain_product = ProductTemplate.create({
+                            'name': f"{rec.wood_template_id.name} {remaining_piece}m",
+                            'default_code': remain_code,
+                            'width': width,
+                            'length': remaining_piece,
+                            'uom_id': rec.wood_template_id.uom_id.id,
+                            'is_storable': True,
+                        })
 
-                if not remain_product:
-                    remain_product = ProductTemplate.create({
-                        'name': f"{rec.wood_template_id.name} {remaining_piece}m",
-                        'default_code': remain_code,
-                        'width': width,
-                        'length': remaining_piece,
-                        'uom_id': rec.wood_template_id.uom_id.id,
-                        'is_storable': True,
-                    })
+                    variant = remain_product.product_variant_id
 
-                variant = remain_product.product_variant_id
+                    quant = StockQuant.search([
+                        ('product_id', '=', variant.id),
+                        ('location_id', '=', stock_location.id)
+                    ], limit=1)
 
-                quant = StockQuant.search([
-                    ('product_id', '=', variant.id),
-                    ('location_id', '=', stock_location.id)
-                ], limit=1)
+                    if quant:
+                        quant.inventory_quantity = quant.quantity + 1
+                    else:
+                        quant = StockQuant.create({
+                            'product_id': variant.id,
+                            'location_id': stock_location.id,
+                            'inventory_quantity': 1,
+                        })
 
-                if quant:
-                    quant.inventory_quantity = quant.quantity + 1
-                else:
-                    quant = StockQuant.create({
-                        'product_id': variant.id,
-                        'location_id': stock_location.id,
-                        'inventory_quantity': 1,
-                    })
-
-                quant.action_apply_inventory()
+                    quant.action_apply_inventory()

@@ -17,10 +17,10 @@ class DynamicCutAvailability(models.Model):
 class DynamicCutResult(models.Model):
     _name = 'dynamic.cut.result'
     _description = 'Cut Result'
+    _order = 'source_product_id, id'  # Group by source log visually
 
     cut_id = fields.Many2one('dynamic.product.cut', ondelete='cascade')
 
-    product_id = fields.Many2one('product.product')
+    source_product_id = fields.Many2one('product.product', string="Source Log")
+    product_id = fields.Many2one('product.product', string="Cut Piece")
     quantity = fields.Float()
-
-    source_product_id = fields.Many2one('product.product')
