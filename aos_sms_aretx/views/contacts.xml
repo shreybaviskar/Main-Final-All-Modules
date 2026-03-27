@@ -7,9 +7,7 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <!--            <xpath expr="//page[@name='internal_notes']" position="after">-->
-            <xpath expr="//field[@name='phone']" position="after">
-                <field name="mobile" widget="phone" string="Mobile" placeholder="Mobile"/>
-            </xpath>
+
             <xpath expr="//field[@name='category_id']" position="after">
                 <field name="is_technician" invisible="1"/>
             </xpath>
