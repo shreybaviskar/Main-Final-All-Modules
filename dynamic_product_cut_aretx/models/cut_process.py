@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields, api
 from odoo.exceptions import UserError
 
 
@@ -29,6 +29,77 @@ class DynamicProductCut(models.Model):
         'dynamic.cut.result',
         'cut_id'
     )
+
+    # ── Summary computed fields ──────────────────────────────────────────────
+
+    total_logs_used = fields.Integer(
+        string="Logs Used",
+        compute='_compute_summary',
+        store=True,
+    )
+
+    total_length_required = fields.Float(
+        string="Total Required (mtr)",
+        compute='_compute_summary',
+        store=True,
+        digits=(12, 2),
+    )
+
+    total_length_sourced = fields.Float(
+        string="Total Sourced (mtr)",
+        compute='_compute_summary',
+        store=True,
+        digits=(12, 2),
+    )
+
+    total_waste = fields.Float(
+        string="Total Waste (mtr)",
+        compute='_compute_summary',
+        store=True,
+        digits=(12, 2),
+    )
+
+    efficiency_pct = fields.Float(
+        string="Efficiency (%)",
+        compute='_compute_summary',
+        store=True,
+        digits=(5, 1),
+    )
+
+    @api.depends(
+        'line_ids', 'line_ids.length', 'line_ids.quantity',
+        'cut_result_ids', 'cut_result_ids.is_offcut',
+        'cut_result_ids.length_cut', 'cut_result_ids.source_product_id',
+    )
+    def _compute_summary(self):
+        for rec in self:
+            results = rec.cut_result_ids
+
+            # Total meters requested across all cut lines
+            rec.total_length_required = sum(
+                l.length * l.quantity for l in rec.line_ids
+            )
+
+            # Count unique source logs used
+            rec.total_logs_used = len(results.mapped('source_product_id'))
+
+            # Total meters taken from stock (cuts + offcuts = full log lengths used)
+            rec.total_length_sourced = sum(results.mapped('length_cut'))
+
+            # Waste = sum of offcut / remainder piece lengths
+            offcut_total = sum(
+                r.length_cut for r in results if r.is_offcut
+            )
+            rec.total_waste = offcut_total
+
+            # Efficiency = useful cut meters / total sourced meters
+            useful = rec.total_length_sourced - offcut_total
+            rec.efficiency_pct = (
+                (useful / rec.total_length_sourced * 100)
+                if rec.total_length_sourced else 0.0
+            )
+
+    # ────────────────────────────────────────────────────────────────────────
 
     def action_process_cut(self):
 
@@ -83,12 +154,16 @@ class DynamicProductCut(models.Model):
                         available_qty = quant.quantity
 
                 # LOG AVAILABILITY
+                # expected_code is always set (e.g. "nw-10-51") so the row label
+                # never goes blank even when the product doesn't exist in stock yet.
                 rec.availability_ids.create({
                     'cut_id': rec.id,
                     'product_id': product.product_variant_id.id if product else False,
+                    'expected_code': f"{prefix}-{int(length)}",
+                    'length': length,
                     'required_qty': required_qty,
                     'available_qty': available_qty,
-                    'is_available': available_qty >= required_qty
+                    'is_available': available_qty >= required_qty,
                 })
 
                 if available_qty < required_qty:
@@ -107,13 +182,9 @@ class DynamicProductCut(models.Model):
             # -----------------------------
             # STEP 4: BUILD LOG POOL
             # Rules per length in the same wood family:
-            #   • In shortage                → exclude entirely (we need those pieces, can't cut them)
-            #   • In order but fully stocked → reserve the ordered qty, pool only the SURPLUS units
+            #   • In shortage                → exclude entirely
+            #   • In order but fully stocked → reserve ordered qty, pool only SURPLUS
             #   • Not in order at all        → pool all available units
-            #
-            # This ensures we never consume stock committed to an order line,
-            # while still allowing surplus units of ordered lengths to be
-            # used as source logs for other cuts.
             # -----------------------------
             candidates = ProductTemplate.search([
                 ('default_code', 'like', f'{prefix}-%'),
@@ -132,14 +203,9 @@ class DynamicProductCut(models.Model):
                     continue
 
                 available = int(quant.quantity)
-
-                # Reserve units already committed to this order length
-                # (shortage lengths excluded above, so this only applies to
-                #  fully-stocked ordered lengths like 100m ordered x2, stock x95)
                 reserved = int(length_counter.get(product.length, 0))
-
-                # Only pool the surplus beyond what the order already covers
                 usable = available - reserved
+
                 if usable <= 0:
                     continue
 
@@ -150,37 +216,39 @@ class DynamicProductCut(models.Model):
                         'used': False,
                     })
 
-            # Sort pool: shortest logs first → prefer smaller logs to minimise waste
+            # Sort pool: shortest logs first → minimise waste
             log_pool.sort(key=lambda x: x['length'])
 
             # -----------------------------
-            # STEP 5: FIRST FIT DECREASING (FFD) BIN PACKING
-            # Process pieces largest-first so bigger cuts get placed first.
-            # Try to fill already-opened logs before opening a new one.
+            # STEP 5: BEST FIT DECREASING (BFD) BIN PACKING
+            # Pieces sorted largest-first (Decreasing).
+            # Each piece goes into the open bin where it fits most tightly
+            # (smallest remaining space after placement = Best Fit).
+            # This minimises offcut waste vs First Fit.
+            # Only opens a new log when no open bin can fit the piece,
+            # always picking the smallest available log that fits.
             # -----------------------------
             bins = []
-            # bin structure: {
-            #   'log_entry': pool entry,
-            #   'product': product.template,
-            #   'log_length': float,
-            #   'remaining': float,
-            #   'pieces': [float, ...]
-            # }
 
             for piece in sorted(remaining_lengths, reverse=True):
 
-                placed = False
+                # Find the open bin with the tightest fit for this piece
+                best_bin = None
+                best_remaining = None
 
-                # Try fitting into an already-open bin (best use of opened logs)
                 for b in bins:
-                    if b['remaining'] >= piece:
-                        b['pieces'].append(piece)
-                        b['remaining'] -= piece
-                        placed = True
-                        break
+                    leftover = b['remaining'] - piece
+                    if leftover >= 0:
+                        if best_remaining is None or leftover < best_remaining:
+                            best_bin = b
+                            best_remaining = leftover
 
-                if not placed:
-                    # Open the smallest unused log that can fit this piece
+                if best_bin:
+                    best_bin['pieces'].append(piece)
+                    best_bin['remaining'] -= piece
+                else:
+                    # No open bin fits — open the smallest unused log that fits
+                    new_bin_opened = False
                     for log_entry in log_pool:
                         if not log_entry['used'] and log_entry['length'] >= piece:
                             log_entry['used'] = True
@@ -191,26 +259,24 @@ class DynamicProductCut(models.Model):
                                 'remaining': log_entry['length'] - piece,
                                 'pieces': [piece],
                             })
-                            placed = True
+                            new_bin_opened = True
                             break
 
-                if not placed:
-                    raise UserError(
-                        f"No log available to cut a piece of {piece}m. "
-                        f"Please ensure a log longer than {piece}m is in stock."
-                    )
+                    if not new_bin_opened:
+                        raise UserError(
+                            f"No log available to cut a piece of {piece}m. "
+                            f"Please ensure a log longer than {piece}m is in stock."
+                        )
 
             # -----------------------------
             # STEP 6: PROCESS EACH BIN
-            # For every log used: deduct stock, create cut pieces,
-            # put back the leftover piece.
             # -----------------------------
             for b in bins:
 
                 source_product = b['product']
                 parent_variant = source_product.product_variant_id
 
-                # --- Deduct 1 unit from source log ---
+                # Deduct 1 unit from source log
                 parent_quant = StockQuant.search([
                     ('product_id', '=', parent_variant.id),
                     ('location_id', '=', stock_location.id)
@@ -224,7 +290,7 @@ class DynamicProductCut(models.Model):
                 parent_quant.inventory_quantity = parent_quant.quantity - 1
                 parent_quant.action_apply_inventory()
 
-                # --- Create child cut pieces ---
+                # Create child cut pieces
                 for length in b['pieces']:
 
                     child_code = f"{prefix}-{int(length)}"
@@ -265,10 +331,12 @@ class DynamicProductCut(models.Model):
                         'cut_id': rec.id,
                         'product_id': variant.id,
                         'quantity': 1,
+                        'length_cut': length,
                         'source_product_id': parent_variant.id,
+                        'is_offcut': False,
                     })
 
-                # --- Handle leftover piece from this log ---
+                # Handle leftover / offcut piece
                 remaining_piece = b['remaining']
 
                 if remaining_piece > 0:
@@ -306,3 +374,13 @@ class DynamicProductCut(models.Model):
                         })
 
                     quant.action_apply_inventory()
+
+                    # Log the offcut in cut results
+                    rec.cut_result_ids.create({
+                        'cut_id': rec.id,
+                        'product_id': variant.id,
+                        'quantity': 1,
+                        'length_cut': remaining_piece,
+                        'source_product_id': parent_variant.id,
+                        'is_offcut': True,
+                    })
