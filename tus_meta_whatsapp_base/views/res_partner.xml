@@ -21,6 +21,9 @@
                 <field name="is_whatsapp_number" readonly="1" string="WhatsApp Contact"/>
                 <field name="is_in_out" readonly="1"/>
             </xpath>
+              <xpath expr="//field[@name='phone']" position="after">
+                <field name="mobile" widget="phone" string="Mobile" placeholder="Mobile"/>
+            </xpath>
             <!-- Changed: mobile to phone for Odoo 19 compatibility -->
             <xpath expr="//field[@name='mobile']" position="after">
                 <button
