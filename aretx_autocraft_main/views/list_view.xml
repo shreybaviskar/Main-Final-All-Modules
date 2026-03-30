@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_today_deadline_tasks" model="ir.actions.server">
+        <field name="name">Today's Deadline Tasks</field>
+        <field name="model_id" ref="project.model_project_task"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = env['project.task'].action_today_deadline_tasks()
+        </field>
+    </record>
+
+    <record id="view_task_tree_custom" model="ir.ui.view">
+        <field name="name">project.task.tree.plain_deadline</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_tree2"/>
+        <field name="arch" type="xml">
+            <field name="date_deadline" position="after">
+                <field name="date_deadline_plain" widget="date" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+
+    <record id="action_main_overdue_tasks" model="ir.actions.server">
+        <field name="name">Overdue's Tasks</field>
+        <field name="model_id" ref="project.model_project_task"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = env['project.task'].action_overdue_tasks()
+        </field>
+    </record>
+
+    <record id="project_project_tree_deadline_string" model="ir.ui.view">
+        <field name="name">project.task.tree.deadline.string</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.project_task_view_tree_main_base"/>
+<!--        <field name="inherit_id" ref="project.open_view_all_tasks_list_view"/>-->
+        <field name="arch" type="xml">
+            <field name="date_deadline" position="attributes">
+                <attribute name="string">Deadline In Days</attribute>
+            </field>
+        </field>
+    </record>
+
+
+    <menuitem
+            id="menu_overdue_tasks"
+            name="OverDue Tasks"
+            parent="project.menu_main_pm"
+            action="action_main_overdue_tasks"/>
+
+    <menuitem
+            id="menu_today_deadline_tasks"
+            name="Today Tasks"
+            parent="project.menu_main_pm"
+            action="action_today_deadline_tasks"/>
+
+</odoo>
