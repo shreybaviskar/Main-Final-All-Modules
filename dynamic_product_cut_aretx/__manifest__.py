@@ -1,6 +1,6 @@
 {
     'name': 'Dynamic Product Cut',
-    'version': '1.0',
+    'version': '1.0.1',
     'sequence': -99,
     'application': True,
     'depends': ['stock', 'product'],
