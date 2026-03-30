@@ -2,54 +2,39 @@
 <odoo>
     <data>
 
-        <!-- ============================= -->
         <!-- SMART BUTTONS ON CONTACT FORM -->
-        <!-- ============================= -->
         <record id="view_partner_form_employee_button" model="ir.ui.view">
             <field name="name">res.partner.form.employee.button</field>
             <field name="model">res.partner</field>
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//div[@name='button_box']" position="inside">
-
-                    <!-- Create Employee Button -->
                     <button name="action_create_employee"
                             type="object"
                             class="oe_stat_button"
                             icon="fa-user"
-                            invisible="employee_count &gt; 0"
+                            invisible="employee_count > 0"
                             string="Create Employee"/>
-
-                    <!-- View Employee Button -->
                     <button name="action_view_employee"
                             type="object"
                             class="oe_stat_button"
                             icon="fa-user"
                             invisible="employee_count == 0">
-                        <field name="employee_count"
-                               widget="statinfo"
-                               string="Employee"/>
+                        <field name="employee_count" widget="statinfo" string="Employee"/>
                     </button>
-
                 </xpath>
             </field>
         </record>
 
-
-        <!-- ============================= -->
-        <!-- UNIQUE CONTACTS ACTION -->
-        <!-- ============================= -->
+        <!-- CONTACTS ACTION — no custom context, no _search override -->
         <record id="action_contacts_unique" model="ir.actions.act_window">
             <field name="name">Contacts</field>
             <field name="res_model">res.partner</field>
             <field name="view_mode">kanban,list,form</field>
-            <field name="context">{'show_unique_contacts': True}</field>
+            <field name="context">{}</field>
         </record>
 
-
-        <!-- ============================= -->
         <!-- OVERRIDE DEFAULT CONTACTS MENU -->
-        <!-- ============================= -->
         <record id="contacts.menu_contacts" model="ir.ui.menu">
             <field name="action" ref="action_contacts_unique"/>
         </record>

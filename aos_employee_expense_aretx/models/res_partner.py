@@ -23,46 +23,22 @@ class ResPartner(models.Model):
         for partner in self:
             partner.employee_count = 1 if partner.employee_id else 0
 
-    # 🔥 MAIN FIX: UNIQUE RECORDS IN TREE VIEW
-    @api.model
-    def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
-        if self.env.context.get('show_unique_contacts'):
-            self.env.cr.execute("""
-                SELECT MIN(id)
-                FROM res_partner
-                WHERE active = true
-                GROUP BY LOWER(TRIM(name))
-            """)
-            unique_ids = [row[0] for row in self.env.cr.fetchall()]
-            domain = domain + [('id', 'in', unique_ids)]
-
-        return super()._search(domain, offset, limit, order, **kwargs)
-
-    # ---------------- SMART BUTTONS ---------------- #
-
     def action_create_employee(self):
         self.ensure_one()
-
         if self.employee_id:
             raise UserError('This contact already has an employee.')
-
         if self.is_company:
             raise UserError('Cannot create employee from a company.')
 
-        employee = self.env['hr.employee'].create({
-            'name': self.name,
-        })
-
+        employee = self.env['hr.employee'].create({'name': self.name})
         vals = {}
         if self.phone:
             vals['work_phone'] = self.phone
         if self.mobile:
             vals['mobile_phone'] = self.mobile
         vals['work_email'] = self.email or 'work@email.com'
-
         if vals:
             employee.write(vals)
-
         self.employee_id = employee.id
 
         return {
@@ -76,10 +52,8 @@ class ResPartner(models.Model):
 
     def action_view_employee(self):
         self.ensure_one()
-
         if not self.employee_id:
             raise UserError('No employee linked.')
-
         return {
             'type': 'ir.actions.act_window',
             'name': 'Employee',
