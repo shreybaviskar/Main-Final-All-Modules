@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ===============================   Tree View: Latest First    =============================== -->
+    <record id="project_project_tree_order_desc" model="ir.ui.view">
+        <field name="name">project.project.tree.order.desc</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_list_view_group_stage"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="default_order">create_date desc</attribute>
+            </list>
+        </field>
+    </record>
+    <!-- ===============================   Kanban View: Latest First  =============================== -->
+    <record id="project_project_kanban_order_desc" model="ir.ui.view">
+        <field name="name">project.project.kanban.order.desc</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_kanban_view_group_stage"/>
+        <field name="arch" type="xml">
+            <kanban position="attributes">
+                <attribute name="default_order">create_date desc</attribute>
+            </kanban>
+        </field>
+    </record>
+
+
+</odoo>
