@@ -8,10 +8,10 @@
             <list>
                 <field name="name"/>
                 <field name="wood_template_id"/>
-                <field name="total_logs_used"/>
-                <field name="total_length_required" string="Required (mtr)"/>
-                <field name="total_waste" string="Waste (mtr)"/>
-                <field name="efficiency_pct" string="Efficiency (%)"/>
+                <field name="total_logs_used" optional="hide"/>
+                <field name="total_length_required" string="Required (mtr)" optional="hide"/>
+                <field name="total_waste" string="Waste (mtr)" optional="hide"/>
+                <field name="efficiency_pct" string="Efficiency (%)" optional="hide"/>
             </list>
         </field>
     </record>
