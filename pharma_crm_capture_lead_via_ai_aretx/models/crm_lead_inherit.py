@@ -2,8 +2,8 @@ from odoo import models, fields, api
 import base64
 
 import logging
-_logger = logging.getLogger(__name__)
 
+_logger = logging.getLogger(__name__)
 
 
 class CrmLead(models.Model):
@@ -18,7 +18,8 @@ class CrmLead(models.Model):
         attachment=False
     )
     file_data = fields.Binary(
-        string="Upload File"
+        string="Upload File",
+        attachment=False
     )
     capture_filename = fields.Char(string="Filename")
     show_extracted_fields = fields.Boolean(string="Show Extracted Fields", default=False)
@@ -32,25 +33,29 @@ class CrmLead(models.Model):
             res['type'] = 'lead'
         return res
 
-    @api.model
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         """Override create to handle file upload during creation"""
         # Check if file is being uploaded during creation
-        file_in_vals = ('file_data' in vals and vals.get('file_data')) or \
-                       ('captured_image' in vals and vals.get('captured_image'))
+        has_file_flags = [
+            bool(('file_data' in vals and vals.get('file_data')) or
+                 ('captured_image' in vals and vals.get('captured_image')))
+            for vals in vals_list
+        ]
 
         # Create the record
-        record = super(CrmLead, self).create(vals)
+        records = super(CrmLead, self).create(vals_list)
 
         # If file was uploaded during creation, trigger extraction
-        if file_in_vals and not record.show_extracted_fields and not self.env.context.get('auto_extracting'):
-            try:
-                _logger.info(f"File detected in create() - triggering extraction for new lead")
-                record.with_context(auto_extracting=True)._extract_and_populate()
-            except Exception as e:
-                _logger.error(f"Error extracting data during create: {str(e)}", exc_info=True)
+        for record, file_in_vals in zip(records, has_file_flags):
+            if file_in_vals and not record.show_extracted_fields and not self.env.context.get('auto_extracting'):
+                try:
+                    _logger.info(f"File detected in create() - triggering extraction for new lead")
+                    record.with_context(auto_extracting=True)._extract_and_populate()
+                except Exception as e:
+                    _logger.error(f"Error extracting data during create: {str(e)}", exc_info=True)
 
-        return record
+        return records
 
     # Manav's Logic
     def write(self, vals):
@@ -66,6 +71,9 @@ class CrmLead(models.Model):
             leads_state[lead.id] = bool(lead.captured_image or lead.file_data)
 
         res = super(CrmLead, self).write(vals)
+
+        # Odoo 19: invalidate ORM cache so post-write field reads are fresh
+        self.invalidate_recordset()
 
         # Post-write processing PER RECORD
         for lead in self:
@@ -185,10 +193,10 @@ class CrmLead(models.Model):
 
             if extracted_data.get('mobile'):
                 lead_vals['mobile'] = extracted_data.get('mobile')
-            
+
             if extracted_data.get('website'):
                 lead_vals['website'] = extracted_data.get('website')
-            
+
             if extracted_data.get('job_position'):
                 lead_vals['function'] = extracted_data.get('job_position')
 

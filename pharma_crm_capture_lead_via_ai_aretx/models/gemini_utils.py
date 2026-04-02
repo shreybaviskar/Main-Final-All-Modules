@@ -80,19 +80,19 @@ class GeminiExtractor:
             if isinstance(image_data, str):
                 # Clean the base64 string - remove whitespace and ensure proper padding
                 base64_str = image_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
-                
+
                 # Add padding if needed
                 missing_padding = len(base64_str) % 4
                 if missing_padding:
                     base64_str += '=' * (4 - missing_padding)
-                
+
                 try:
                     image_bytes = base64.b64decode(base64_str, validate=True)
                 except Exception as e:
                     _logger.error(f"Error decoding base64: {str(e)}")
                     # Try without validation
                     image_bytes = base64.b64decode(base64_str)
-                
+
                 # Open the image
                 image = Image.open(io.BytesIO(image_bytes))
             elif isinstance(image_data, bytes):
@@ -114,13 +114,13 @@ class GeminiExtractor:
                     image = rgb_image
                 elif image.mode != 'RGB':
                     image = image.convert('RGB')
-                
+
                 # Save as PNG bytes to pass to Gemini (avoids WEBP conversion)
                 png_buffer = io.BytesIO()
                 image.save(png_buffer, format='PNG')
                 png_bytes = png_buffer.getvalue()
                 png_buffer.close()
-                
+
                 # Use the PNG bytes directly instead of PIL Image to avoid WEBP conversion
                 image_for_gemini = png_bytes
             except Exception as e:
@@ -178,7 +178,7 @@ IMPORTANT:
                     image_for_gemini = img_buffer.getvalue()
                 else:
                     raise ValueError("Cannot convert image to bytes")
-            
+
             # Pass as dictionary with explicit PNG MIME type to avoid WEBP conversion
             response = self.model.generate_content([
                 {"mime_type": "image/png", "data": image_for_gemini},
