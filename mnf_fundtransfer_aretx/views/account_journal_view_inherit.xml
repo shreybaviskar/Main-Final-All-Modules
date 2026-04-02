@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+    ================================================================
+    Inherit the Odoo 19 journal dashboard kanban view.
+
+    XPaths are based on the ACTUAL arch of
+    account.account_journal_dashboard_kanban_view in Odoo 19.
+
+    We inject "Transfer Funds" in two places:
+      1. Card body  — visible on the kanban card for bank/cash journals
+      2. ☰ Menu     — visible in the dropdown menu for ALL journal types
+    ================================================================
+    -->
+    <record id="account_journal_dashboard_kanban_inherit_transfer_button" model="ir.ui.view">
+        <field name="name">account.journal.kanban.transfer.button</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.account_journal_dashboard_kanban_view"/>
+        <field name="arch" type="xml">
+
+            <!-- ── 1. CARD BODY: Bank / Cash / Credit journals ─────────────
+                 The div[@name='bank_cash_buttons'] contains the "Transactions"
+                 and "Bank Setup" buttons.  We add "Transfer Funds" right after.
+            -->
+            <xpath expr="//div[@name='bank_cash_buttons']" position="inside">
+                <button name="open_transfer_funds_wizard"
+                        type="object"
+                        string="Transfer Funds"
+                        class="btn btn-secondary"
+                        groups="account.group_account_invoice"/>
+            </xpath>
+
+            <!-- ── 2. MENU: Bank / Cash / Credit — "New" column ───────────
+                 Injects a "Transfer Funds" link into the New column of the
+                 ☰ dropdown menu that appears on bank/cash/credit cards.
+                 Target: the col-4 div[@name='kanban_manage_new'] that lives
+                 inside div[@id='bank_and_cash_container'].
+            -->
+            <xpath expr="//div[@id='bank_and_cash_container']//div[@name='kanban_manage_new']" position="inside">
+                <div>
+                    <a role="menuitem"
+                       type="object"
+                       name="open_transfer_funds_wizard"
+                       groups="account.group_account_invoice">Transfer Funds</a>
+                </div>
+            </xpath>
+
+            <!-- ── 3. MENU: Sale / Purchase — "New" column ────────────────
+                 The sale/purchase kanban_manage_new div does NOT live inside
+                 bank_and_cash_container, so this xpath hits the correct one.
+            -->
+            <xpath expr="//div[not(ancestor::div[@id='bank_and_cash_container'])][@name='kanban_manage_new']" position="inside">
+                <div>
+                    <a role="menuitem"
+                       type="object"
+                       name="open_transfer_funds_wizard"
+                       groups="account.group_account_invoice">Transfer Funds</a>
+                </div>
+            </xpath>
+
+            <!-- ── 4. CARD BODY: General / Miscellaneous journals ─────────
+                 General journals show a single "New" button
+                 (id="new_misc_entry_button"). We add "Transfer Funds" after it.
+            -->
+            <xpath expr="//button[@id='new_misc_entry_button']" position="after">
+                <button name="open_transfer_funds_wizard"
+                        type="object"
+                        string="Transfer Funds"
+                        class="btn btn-secondary ms-1"
+                        groups="account.group_account_invoice"/>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_driver_transfer_funds_wizard_user,driver.transfer.funds.wizard user,model_driver_transfer_funds_wizard,account.group_account_invoice,1,1,1,1
+access_driver_transfer_funds_wizard_manager,driver.transfer.funds.wizard manager,model_driver_transfer_funds_wizard,account.group_account_user,1,1,1,1
