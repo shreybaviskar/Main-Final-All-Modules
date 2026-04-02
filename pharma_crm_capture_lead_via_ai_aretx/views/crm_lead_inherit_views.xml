@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="crm_lead_form_inherit_capture" model="ir.ui.view">
+            <field name="name">crm.lead.form.inherit.capture</field>
+            <field name="model">crm.lead</field>
+            <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet/*[1]" position="before">
+                    <group col="2">
+                        <group/>
+                        <group string="Upload File or Image">
+
+                            <field name="file_data" filename="capture_filename" on_change="1"/>
+                            <field name="show_extracted_fields" invisible="1"/>
+                        </group>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+</odoo>
