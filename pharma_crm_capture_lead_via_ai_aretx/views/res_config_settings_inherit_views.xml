@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_gemini" model="ir.ui.view">
+        <field name="name">res.config.settings.gemini</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app name="gemini_api" string="Gemini API" data-string="Gemini API" logo="/pharma_crm_capture_lead_via_ai_aretx/static/description/gemini.png">
+                    <block title="Gemini Configuration" name="gemini_api_block">
+                        <setting string="Gemini API Key" help="API key used for Gemini AI image and leads extraction.">
+                            <field name="gemini_api_key" password="True"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>
