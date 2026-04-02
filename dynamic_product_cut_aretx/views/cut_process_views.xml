@@ -70,7 +70,7 @@
                                 <field name="product_id" string="Product (if exists)" optional="show"/>
                                 <field name="length" string="Length (mtr)"/>
                                 <field name="required_qty" string="Required"/>
-                                <field name="available_qty" string="Available"/>
+                                <field name="available_qty" string="Stock In Hand"/>
                                 <field name="is_available" string="✓ Available"/>
                             </list>
                         </field>
