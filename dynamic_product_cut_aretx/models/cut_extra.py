@@ -11,7 +11,6 @@ class DynamicCutAvailability(models.Model):
     product_id = fields.Many2one('product.product', string="Product")
 
     # Always stored — shows expected code even when product doesn't exist yet
-    # e.g. "nw-10-51" for a 51m piece that has never been cut before
     expected_code = fields.Char(string="Expected Code")
 
     # Length stored separately so the label never goes blank
@@ -25,7 +24,7 @@ class DynamicCutAvailability(models.Model):
 class DynamicCutResult(models.Model):
     _name = 'dynamic.cut.result'
     _description = 'Cut Result'
-    _order = 'source_product_id, is_offcut, id'
+    _order = 'log_index, source_product_id, is_offcut, id'
 
     cut_id = fields.Many2one('dynamic.product.cut', ondelete='cascade')
 
@@ -38,3 +37,8 @@ class DynamicCutResult(models.Model):
 
     # True for the leftover remainder piece — shown differently in the view
     is_offcut = fields.Boolean(string="Offcut / Remainder", default=False)
+
+    # Sequential index of the physical log used (1, 2, 3 …).
+    # Two records with the same source_product_id but different log_index
+    # came from different physical logs of the same product.
+    log_index = fields.Integer(string="Log Use #", default=1)

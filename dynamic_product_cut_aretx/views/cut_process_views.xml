@@ -8,10 +8,9 @@
             <list>
                 <field name="name"/>
                 <field name="wood_template_id"/>
-                <field name="total_logs_used" optional="hide"/>
                 <field name="total_length_required" string="Required (mtr)" optional="hide"/>
-                <field name="total_waste" string="Waste (mtr)" optional="hide"/>
-                <field name="efficiency_pct" string="Efficiency (%)" optional="hide"/>
+                <field name="total_waste"            string="Waste (mtr)"   optional="hide"/>
+                <field name="efficiency_pct"         string="Efficiency (%)" optional="hide"/>
             </list>
         </field>
     </record>
@@ -27,6 +26,13 @@
                             type="object"
                             string="Process"
                             class="btn-primary"/>
+
+                    <!-- Download button: only shown after cut results exist -->
+                    <button name="action_download_cut_plan"
+                            type="object"
+                            string="⬇ Download Cut Plan"
+                            class="btn-secondary"
+                            invisible="not cut_result_ids"/>
                 </header>
 
                 <group>
@@ -35,11 +41,10 @@
                     </group>
                     <!-- Summary panel — optiCutter-style overview after processing -->
                     <group string="Cutting Summary">
-                        <field name="total_logs_used" readonly="1"/>
                         <field name="total_length_required" readonly="1"/>
-                        <field name="total_length_sourced" readonly="1"/>
-                        <field name="total_waste" readonly="1"/>
-                        <field name="efficiency_pct" readonly="1" string="Efficiency (%)"/>
+                        <field name="total_length_sourced"  readonly="1"/>
+                        <field name="total_waste"           readonly="1"/>
+                        <field name="efficiency_pct"        readonly="1" string="Efficiency (%)"/>
                     </group>
                 </group>
 
@@ -60,33 +65,28 @@
                             <list create="0" edit="0" delete="0"
                                   decoration-success="is_available == True"
                                   decoration-danger="is_available == False">
-                                <!--
-                                    Show expected_code as the primary label.
-                                    When the product already exists in stock,
-                                    product_id will match; when it doesn't exist
-                                    yet, expected_code is the only identifier.
-                                -->
                                 <field name="expected_code" string="Product Code"/>
-                                <field name="product_id" string="Product (if exists)" optional="show"/>
-                                <field name="length" string="Length (mtr)"/>
-                                <field name="required_qty" string="Required"/>
+                                <field name="product_id"    string="Product (if exists)" optional="show"/>
+                                <field name="length"        string="Length (mtr)"/>
+                                <field name="required_qty"  string="Required"/>
                                 <field name="available_qty" string="Stock In Hand"/>
-                                <field name="is_available" string="✓ Available"/>
+                                <field name="is_available"  string="✓ Available"/>
                             </list>
                         </field>
                     </page>
 
-                    <!-- Cut Details — grouped by source log with length subtotals -->
+                    <!-- Cut Details — grouped by source log -->
                     <page string="Cut Details">
                         <field name="cut_result_ids">
                             <list create="0" edit="0" delete="0"
                                   default_group_by="source_product_id"
                                   decoration-muted="is_offcut == True">
+                                <field name="log_index"        string="Log #"       optional="show"/>
                                 <field name="source_product_id" string="Source Log"/>
-                                <field name="product_id" string="Cut Piece"/>
-                                <field name="length_cut" string="Length (mtr)" sum="Total (mtr)"/>
-                                <field name="quantity" sum="Pieces"/>
-                                <field name="is_offcut" string="Offcut"/>
+                                <field name="product_id"        string="Cut Piece"/>
+                                <field name="length_cut"        string="Length (mtr)" sum="Total (mtr)"/>
+                                <field name="quantity"          sum="Pieces"/>
+                                <field name="is_offcut"         string="Offcut"/>
                             </list>
                         </field>
                     </page>

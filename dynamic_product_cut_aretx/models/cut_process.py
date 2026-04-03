@@ -1,3 +1,7 @@
+import io
+import base64
+from collections import defaultdict
+
 from odoo import models, fields, api
 from odoo.exceptions import UserError
 
@@ -80,16 +84,16 @@ class DynamicProductCut(models.Model):
                 l.length * l.quantity for l in rec.line_ids
             )
 
-            # Count unique source logs used
-            rec.total_logs_used = len(results.mapped('source_product_id'))
+            # Count unique (source_product_id, log_index) pairs = physical logs used
+            rec.total_logs_used = len(
+                set((r.source_product_id.id, r.log_index) for r in results)
+            )
 
-            # Total meters taken from stock (cuts + offcuts = full log lengths used)
+            # Total meters taken from stock
             rec.total_length_sourced = sum(results.mapped('length_cut'))
 
-            # Waste = sum of offcut / remainder piece lengths
-            offcut_total = sum(
-                r.length_cut for r in results if r.is_offcut
-            )
+            # Waste = sum of offcut lengths
+            offcut_total = sum(r.length_cut for r in results if r.is_offcut)
             rec.total_waste = offcut_total
 
             # Efficiency = useful cut meters / total sourced meters
@@ -112,29 +116,22 @@ class DynamicProductCut(models.Model):
             if not rec.line_ids:
                 raise UserError("Please add cut lines.")
 
-            # -----------------------------
             # CLEAR OLD DATA
-            # -----------------------------
             rec.availability_ids.unlink()
             rec.cut_result_ids.unlink()
 
             code = rec.wood_template_id.default_code
             prefix = '-'.join(code.split('-')[:2])  # e.g. nw-10
-
             width = rec.wood_template_id.width
 
-            # -----------------------------
             # STEP 1: AGGREGATE REQUIREMENTS
-            # -----------------------------
             length_counter = {}
             for line in rec.line_ids:
                 length_counter[line.length] = length_counter.get(line.length, 0) + line.quantity
 
             remaining_lengths = []
 
-            # -----------------------------
             # STEP 2: CHECK STOCK (NO DEDUCTION)
-            # -----------------------------
             for length, required_qty in length_counter.items():
 
                 product = ProductTemplate.search([
@@ -149,13 +146,9 @@ class DynamicProductCut(models.Model):
                         ('product_id', '=', product.product_variant_id.id),
                         ('location_id', '=', stock_location.id),
                     ], limit=1)
-
                     if quant:
                         available_qty = quant.quantity
 
-                # LOG AVAILABILITY
-                # expected_code is always set (e.g. "nw-10-51") so the row label
-                # never goes blank even when the product doesn't exist in stock yet.
                 rec.availability_ids.create({
                     'cut_id': rec.id,
                     'product_id': product.product_variant_id.id if product else False,
@@ -170,22 +163,13 @@ class DynamicProductCut(models.Model):
                     shortage = int(required_qty - available_qty)
                     remaining_lengths.extend([length] * shortage)
 
-            # -----------------------------
             # STEP 3: NOTHING TO CUT
-            # -----------------------------
             if not remaining_lengths:
                 return
 
-            # Lengths that are in shortage — never use as source logs
             shortage_lengths = set(remaining_lengths)
 
-            # -----------------------------
             # STEP 4: BUILD LOG POOL
-            # Rules per length in the same wood family:
-            #   • In shortage                → exclude entirely
-            #   • In order but fully stocked → reserve ordered qty, pool only SURPLUS
-            #   • Not in order at all        → pool all available units
-            # -----------------------------
             candidates = ProductTemplate.search([
                 ('default_code', 'like', f'{prefix}-%'),
                 ('length', 'not in', list(shortage_lengths)),
@@ -216,23 +200,13 @@ class DynamicProductCut(models.Model):
                         'used': False,
                     })
 
-            # Sort pool: shortest logs first → minimise waste
             log_pool.sort(key=lambda x: x['length'])
 
-            # -----------------------------
-            # STEP 5: BEST FIT DECREASING (BFD) BIN PACKING
-            # Pieces sorted largest-first (Decreasing).
-            # Each piece goes into the open bin where it fits most tightly
-            # (smallest remaining space after placement = Best Fit).
-            # This minimises offcut waste vs First Fit.
-            # Only opens a new log when no open bin can fit the piece,
-            # always picking the smallest available log that fits.
-            # -----------------------------
+            # STEP 5: BEST FIT DECREASING BIN PACKING
             bins = []
 
             for piece in sorted(remaining_lengths, reverse=True):
 
-                # Find the open bin with the tightest fit for this piece
                 best_bin = None
                 best_remaining = None
 
@@ -247,7 +221,6 @@ class DynamicProductCut(models.Model):
                     best_bin['pieces'].append(piece)
                     best_bin['remaining'] -= piece
                 else:
-                    # No open bin fits — open the smallest unused log that fits
                     new_bin_opened = False
                     for log_entry in log_pool:
                         if not log_entry['used'] and log_entry['length'] >= piece:
@@ -268,15 +241,14 @@ class DynamicProductCut(models.Model):
                             f"Please ensure a log longer than {piece}m is in stock."
                         )
 
-            # -----------------------------
             # STEP 6: PROCESS EACH BIN
-            # -----------------------------
-            for b in bins:
+            # log_index is a 1-based counter so individual physical logs can be
+            # distinguished in the Cut Details list and in the downloaded report.
+            for log_index, b in enumerate(bins, start=1):
 
                 source_product = b['product']
                 parent_variant = source_product.product_variant_id
 
-                # Deduct 1 unit from source log
                 parent_quant = StockQuant.search([
                     ('product_id', '=', parent_variant.id),
                     ('location_id', '=', stock_location.id)
@@ -290,9 +262,7 @@ class DynamicProductCut(models.Model):
                 parent_quant.inventory_quantity = parent_quant.quantity - 1
                 parent_quant.action_apply_inventory()
 
-                # Create child cut pieces
                 for length in b['pieces']:
-
                     child_code = f"{prefix}-{int(length)}"
 
                     product = ProductTemplate.search([
@@ -334,13 +304,13 @@ class DynamicProductCut(models.Model):
                         'length_cut': length,
                         'source_product_id': parent_variant.id,
                         'is_offcut': False,
+                        'log_index': log_index,
                     })
 
-                # Handle leftover / offcut piece
+                # Offcut / remainder piece
                 remaining_piece = b['remaining']
 
                 if remaining_piece > 0:
-
                     remain_code = f"{prefix}-{int(remaining_piece)}"
 
                     remain_product = ProductTemplate.search([
@@ -375,7 +345,6 @@ class DynamicProductCut(models.Model):
 
                     quant.action_apply_inventory()
 
-                    # Log the offcut in cut results
                     rec.cut_result_ids.create({
                         'cut_id': rec.id,
                         'product_id': variant.id,
@@ -383,4 +352,225 @@ class DynamicProductCut(models.Model):
                         'length_cut': remaining_piece,
                         'source_product_id': parent_variant.id,
                         'is_offcut': True,
+                        'log_index': log_index,
                     })
+
+    # ── Download Cut Plan (Excel) ────────────────────────────────────────────
+
+    def action_download_cut_plan(self):
+        """
+        Generate an Excel workbook showing the cut plan grouped by individual
+        physical log (source_product_id + log_index), matching the layout in
+        the reference Excel screenshot:
+
+            Source Log  │  Cut Piece Code  │  Length (mtr)  │  Offcut?
+            ────────────┼──────────────────┼────────────────┼─────────
+            nw-10-100   │  nw-10-51        │  51.00         │
+            (merged)    │  nw-10-47        │  47.00         │
+                        │  nw-10-2         │   2.00         │  ✓
+            nw-10-100   │  nw-10-51        │  51.00         │
+            (merged)    │  …               │  …             │
+        """
+        try:
+            import xlsxwriter
+        except ImportError:
+            raise UserError(
+                "The 'xlsxwriter' Python package is required to generate the "
+                "Excel report. Ask your system administrator to install it."
+            )
+
+        self.ensure_one()
+
+        if not self.cut_result_ids:
+            raise UserError("No cut results found. Please run Process first.")
+
+        # ── Workbook / formats ───────────────────────────────────────────────
+        output = io.BytesIO()
+        wb = xlsxwriter.Workbook(output, {'in_memory': True})
+        ws = wb.add_worksheet('Cut Plan')
+
+        # Base formats
+        bold = wb.add_format({'bold': True})
+
+        title_fmt = wb.add_format({
+            'bold': True, 'font_size': 14, 'font_color': '#1F3864',
+        })
+        subtitle_fmt = wb.add_format({
+            'italic': True, 'font_color': '#595959', 'font_size': 10,
+        })
+
+        col_header_fmt = wb.add_format({
+            'bold': True, 'bg_color': '#1F3864', 'font_color': '#FFFFFF',
+            'border': 1, 'align': 'center', 'valign': 'vcenter',
+            'text_wrap': True,
+        })
+
+        log_fmt = wb.add_format({
+            'bold': True, 'bg_color': '#D6E4F0', 'font_color': '#1F3864',
+            'border': 1, 'align': 'center', 'valign': 'vcenter',
+            'text_wrap': True,
+        })
+
+        piece_fmt = wb.add_format({
+            'border': 1, 'align': 'left', 'valign': 'vcenter',
+        })
+        piece_num_fmt = wb.add_format({
+            'border': 1, 'align': 'right', 'valign': 'vcenter',
+            'num_format': '0.00',
+        })
+
+        offcut_label_fmt = wb.add_format({
+            'border': 1, 'align': 'left', 'valign': 'vcenter',
+            'italic': True, 'font_color': '#888888', 'bg_color': '#F5F5F5',
+        })
+        offcut_num_fmt = wb.add_format({
+            'border': 1, 'align': 'right', 'valign': 'vcenter',
+            'num_format': '0.00', 'italic': True,
+            'font_color': '#888888', 'bg_color': '#F5F5F5',
+        })
+        offcut_tick_fmt = wb.add_format({
+            'border': 1, 'align': 'center', 'valign': 'vcenter',
+            'italic': True, 'font_color': '#888888', 'bg_color': '#F5F5F5',
+            'bold': True,
+        })
+
+        summary_label_fmt = wb.add_format({
+            'bold': True, 'bg_color': '#EBF1DE', 'border': 1,
+            'align': 'right', 'valign': 'vcenter',
+        })
+        summary_val_fmt = wb.add_format({
+            'bold': True, 'bg_color': '#EBF1DE', 'border': 1,
+            'num_format': '0.00', 'align': 'right',
+        })
+        summary_pct_fmt = wb.add_format({
+            'bold': True, 'bg_color': '#EBF1DE', 'border': 1,
+            'num_format': '0.0"%"', 'align': 'right',
+        })
+
+        # ── Column widths ────────────────────────────────────────────────────
+        ws.set_column(0, 0, 24)   # A – Source Log
+        ws.set_column(1, 1, 28)   # B – Cut Piece
+        ws.set_column(2, 2, 14)   # C – Length (mtr)
+        ws.set_column(3, 3, 8)    # D – Qty
+        ws.set_column(4, 4, 9)    # E – Offcut?
+
+        # ── Title block ──────────────────────────────────────────────────────
+        row = 0
+        ws.write(row, 0, 'CUT PLAN REPORT', title_fmt)
+        row += 1
+        ws.write(row, 0, f'Process : {self.name}', subtitle_fmt)
+        row += 1
+        ws.write(row, 0, f'Wood Type: {self.wood_template_id.display_name}', subtitle_fmt)
+        row += 2   # blank row
+
+        # ── Column headers ───────────────────────────────────────────────────
+        ws.set_row(row, 22)
+        ws.write(row, 0, 'Source Log',    col_header_fmt)
+        ws.write(row, 1, 'Cut Piece',     col_header_fmt)
+        ws.write(row, 2, 'Length (mtr)',  col_header_fmt)
+        ws.write(row, 3, 'Qty',           col_header_fmt)
+        ws.write(row, 4, 'Offcut',        col_header_fmt)
+        row += 1
+
+        # Thin separator row drawn between log groups
+        sep_fmt = wb.add_format({
+            'bg_color': '#FFFFFF', 'top': 2, 'top_color': '#1F3864',
+        })
+
+        # ── Group results by (log_index, source_product_id) ──────────────────
+        # Each unique (log_index, source_product_id) pair = one physical log.
+        # Two logs of the same product get different log_index values (1, 2, …)
+        # and therefore appear as completely separate groups in the report.
+        groups = defaultdict(list)
+        for r in self.cut_result_ids.sorted(
+            lambda x: (x.log_index, x.source_product_id.id, x.is_offcut, x.id)
+        ):
+            groups[(r.log_index, r.source_product_id.id)].append(r)
+
+        # Keep groups in original processing order (by log_index)
+        ordered_keys = sorted(groups.keys(), key=lambda k: k[0])
+
+        for group_num, key in enumerate(ordered_keys, start=1):
+            log_idx, _src_id = key
+            results  = groups[key]
+            source   = results[0].source_product_id
+            group_start = row
+
+            # Write each piece row
+            for r in results:
+                if r.is_offcut:
+                    lbl_fmt = offcut_label_fmt
+                    num_fmt = offcut_num_fmt
+                    tick    = '✓'
+                else:
+                    lbl_fmt = piece_fmt
+                    num_fmt = piece_num_fmt
+                    tick    = ''
+
+                ws.write(row, 1, r.product_id.display_name, lbl_fmt)
+                ws.write(row, 2, r.length_cut,              num_fmt)
+                ws.write(row, 3, int(r.quantity),           lbl_fmt)
+                ws.write(row, 4, tick,
+                         offcut_tick_fmt if r.is_offcut else piece_fmt)
+                ws.set_row(row, 18)
+                row += 1
+
+            # Source log label — includes Log #N so consecutive logs of the
+            # same product are always visually distinct merged cells.
+            group_end = row - 1
+            log_label = (
+                f"Log #{log_idx}\n"
+                f"{source.display_name}\n"
+                f"({source.product_tmpl_id.length:.0f}m)"
+            )
+            if group_end > group_start:
+                ws.merge_range(group_start, 0, group_end, 0,
+                               log_label, log_fmt)
+            else:
+                ws.write(group_start, 0, log_label, log_fmt)
+
+            # Thin separator row between log groups (skip after last group)
+            if group_num < len(ordered_keys):
+                ws.set_row(row, 5)
+                for col in range(5):
+                    ws.write(row, col, '', sep_fmt)
+                row += 1
+
+        # ── Summary block ────────────────────────────────────────────────────
+        row += 1
+        ws.write(row, 2, 'Total Required (mtr)', summary_label_fmt)
+        ws.write(row, 3, self.total_length_required, summary_val_fmt)
+        row += 1
+        ws.write(row, 2, 'Total Sourced (mtr)',   summary_label_fmt)
+        ws.write(row, 3, self.total_length_sourced, summary_val_fmt)
+        row += 1
+        ws.write(row, 2, 'Total Waste (mtr)',     summary_label_fmt)
+        ws.write(row, 3, self.total_waste,         summary_val_fmt)
+        row += 1
+        ws.write(row, 2, 'Efficiency (%)',        summary_label_fmt)
+        ws.write(row, 3, self.efficiency_pct,      summary_pct_fmt)
+
+        # ── Freeze top rows ──────────────────────────────────────────────────
+        ws.freeze_panes(5, 0)   # freeze title + header
+
+        wb.close()
+        xlsx_data = output.getvalue()
+
+        # Save as attachment so the browser can download it
+        attachment = self.env['ir.attachment'].create({
+            'name': f'cut_plan_{self.name.replace(" ", "_")}.xlsx',
+            'type': 'binary',
+            'datas': base64.b64encode(xlsx_data).decode(),
+            'res_model': self._name,
+            'res_id': self.id,
+            'mimetype': (
+                'application/vnd.openxmlformats-officedocument'
+                '.spreadsheetml.sheet'
+            ),
+        })
+
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'new',
+        }
